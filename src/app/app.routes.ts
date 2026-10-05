@@ -6,18 +6,16 @@ export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/inicio/inicio').then(m => m.Inicio) },
   { path: 'login', canActivate: [invitadoGuard], loadComponent: () => import('./features/auth/login').then(m => m.Login) },
   { path: 'registro', canActivate: [invitadoGuard], loadComponent: () => import('./features/auth/registro').then(m => m.Registro) },
+
+  { path: 'feed', canActivate: [authGuard], loadComponent: () => import('./features/feed/feed').then(m => m.Feed) },
   {
-    path: 'feed',
-    canActivate: [authGuard],
-    data: { titulo: 'feed' },
-    loadComponent: () => import('./features/proximamente/proximamente').then(m => m.Proximamente),
+    path: 'publicar',
+    canActivate: [authGuard, rolGuard('estudiante')],
+    loadComponent: () => import('./features/publicacion/publicar').then(m => m.Publicar),
   },
-  {
-    path: 'portafolio/:id',
-    canActivate: [authGuard],
-    data: { titulo: 'portafolio' },
-    loadComponent: () => import('./features/proximamente/proximamente').then(m => m.Proximamente),
-  },
+  { path: 'publicacion/:id', canActivate: [authGuard], loadComponent: () => import('./features/publicacion/detalle').then(m => m.Detalle) },
+  { path: 'portafolio/:id', canActivate: [authGuard], loadComponent: () => import('./features/portafolio/portafolio').then(m => m.Portafolio) },
+
   {
     path: 'talento',
     canActivate: [authGuard, rolGuard('empresa')],
