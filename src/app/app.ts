@@ -1,12 +1,15 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { Encabezado } from './shared/encabezado';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  imports: [RouterOutlet, Encabezado],
+  template: `
+    <app-encabezado />
+    <main>
+      <router-outlet />
+    </main>
+  `,
 })
-export class App {
-  protected readonly title = signal('devconnect-web');
-}
+export class App {}

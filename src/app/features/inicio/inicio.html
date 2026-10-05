@@ -1,0 +1,60 @@
+<div class="lienzo">
+  <section class="texto">
+    <h1>el código se arregla mejor <span class="resaltado">entre varios.</span></h1>
+    <p class="bajada">
+      Publicas un problema. Otros estudiantes proponen cambios sobre tu código. Tú eliges cuál
+      aceptar, y cada mejora queda en el portafolio de quien la hizo.
+    </p>
+    <div class="acciones">
+      @if (auth.autenticado()) {
+        <a class="btn btn-primario" [routerLink]="auth.rutaInicio()">ir a mi espacio →</a>
+      } @else {
+        <a class="btn btn-primario" routerLink="/registro">crear cuenta</a>
+        <a class="btn btn-secundario" routerLink="/registro" [queryParams]="{ rol: 'empresa' }">soy empresa</a>
+      }
+    </div>
+    <p class="pista">→ pruébalo: espera las propuestas y acepta una.</p>
+  </section>
+
+  <section class="editor" aria-label="Demostración: dos estudiantes proponen mejoras a un código">
+    <div class="barra">
+      <span>main.go · publicado por <span class="laura">&#64;laura_dev</span></span>
+      <span class="estado {{ estado().clase }}" aria-live="polite">{{ estado().texto }}</span>
+    </div>
+
+    <div class="codigo">
+      @for (l of lineas(); track $index) {
+        <div class="linea" [class.m]="l.autor === 'm' && !l.aceptada" [class.a]="l.autor === 'a' && !l.aceptada" [class.aceptada]="l.aceptada">
+          <span class="num">{{ l.n }}</span>
+          <span class="txt">{{ l.txt }}</span>
+          @if (l.escribiendo && l.autor) {
+            <span class="cursor {{ l.autor }}"><span class="bandera">{{ nombreDe(l.autor) }}</span></span>
+          }
+          @if (l.autor) {
+            <span class="etiqueta">{{ l.aceptada ? '✓' : '+' }} {{ nombreDe(l.autor) }}</span>
+          }
+        </div>
+      }
+    </div>
+
+    @if (decidiendo()) {
+      <div class="decision">
+        <button type="button" class="opcion-m" (click)="elegir('m')">aceptar &#64;mateo.go</button>
+        <button type="button" class="opcion-a" (click)="elegir('a')">aceptar &#64;andres.sql</button>
+      </div>
+    }
+
+    @if (eleccion(); as e) {
+      <div class="terminal">
+        <span class="tenue">$ go run main.go</span>
+        <span>hola</span>
+        @if (e === 'a') {
+          <span class="veredicto ok">correcto: main ahora espera a la goroutine. &#64;andres.sql suma esta mejora a su portafolio y entra a tu red.</span>
+        } @else {
+          <span class="veredicto parche">funciona, pero dormir un segundo es un parche: si la tarea tarda más, el mensaje se pierde. Otros compañeros sugieren WaitGroup.</span>
+        }
+        <button type="button" class="repetir" (click)="repetir()">↺ repetir</button>
+      </div>
+    }
+  </section>
+</div>

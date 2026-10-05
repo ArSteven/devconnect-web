@@ -1,1 +1,95 @@
-/* You can add global styles to this file, and also import other style files */
+/* Identidad visual de DevConnect: una sola tipografía, papel cuadriculado, tinta, azul y coral. */
+:root {
+  --papel: #F3F1EA;
+  --linea: #E3DFD3;
+  --tinta: #141414;
+  --tenue: #5E5A50;
+  --blanco: #FFFDF8;
+  --azul: #2F4BFF;
+  --azul-claro: #8EA0FF;
+  --coral: #FF5A36;
+  --coral-texto: #C93A17;
+  --verde: #34C38F;
+  --verde-texto: #167A52;
+  --editor: #141414;
+  --editor-barra: #1E1E1E;
+  --editor-texto: #E8E6E1;
+  --editor-tenue: #A8A49A;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--papel);
+  background-image:
+    linear-gradient(var(--linea) 1px, transparent 1px),
+    linear-gradient(90deg, var(--linea) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--tinta);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+a:hover { color: var(--azul); }
+
+h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; }
+p { margin: 0; }
+
+:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+.contenedor {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px clamp(20px, 4vw, 48px) 72px;
+}
+
+.card {
+  background: var(--blanco);
+  border: 2px solid var(--tinta);
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 var(--tinta);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 2px solid var(--tinta);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-primario { background: var(--tinta); color: var(--papel); }
+.btn-primario:hover { background: var(--azul); border-color: var(--azul); color: #fff; }
+.btn-secundario { background: transparent; color: var(--tinta); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.campo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--tenue); }
+.campo input, .campo select, .campo textarea {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 2px solid var(--tinta);
+  border-radius: 4px;
+  background: var(--blanco);
+  color: var(--tinta);
+  font: inherit;
+  font-size: 15px;
+}
+.campo textarea { padding: 12px 14px; resize: vertical; }
+
+.error { color: var(--coral-texto); font-size: 13px; line-height: 1.5; }
+
+@keyframes parpadeo { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .12; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

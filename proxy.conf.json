@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "https://devconnect-production-0eb0.up.railway.app",
+    "secure": true,
+    "changeOrigin": true
+  }
+}
