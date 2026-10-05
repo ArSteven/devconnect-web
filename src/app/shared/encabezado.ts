@@ -34,10 +34,12 @@ export class Logo {}
         @switch (auth.usuario()?.rol) {
           @case ('estudiante') {
             <a routerLink="/feed" routerLinkActive="activo">feed</a>
+            <a routerLink="/sesiones" routerLinkActive="activo">en vivo</a>
             <a [routerLink]="['/portafolio', auth.usuario()!.id]" routerLinkActive="activo">portafolio</a>
           }
           @case ('empresa') {
             <a routerLink="/talento" routerLinkActive="activo">buscar talento</a>
+            <a routerLink="/sesiones" routerLinkActive="activo">en vivo</a>
             <a routerLink="/planes" routerLinkActive="activo">planes</a>
           }
           @default {

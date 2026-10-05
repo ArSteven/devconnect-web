@@ -14,19 +14,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/publicacion/publicar').then(m => m.Publicar),
   },
   { path: 'publicacion/:id', canActivate: [authGuard], loadComponent: () => import('./features/publicacion/detalle').then(m => m.Detalle) },
+  { path: 'sesiones', canActivate: [authGuard], loadComponent: () => import('./features/sesiones/sesiones').then(m => m.Sesiones) },
   { path: 'portafolio/:id', canActivate: [authGuard], loadComponent: () => import('./features/portafolio/portafolio').then(m => m.Portafolio) },
 
   {
     path: 'talento',
     canActivate: [authGuard, rolGuard('empresa')],
-    data: { titulo: 'buscar talento' },
-    loadComponent: () => import('./features/proximamente/proximamente').then(m => m.Proximamente),
+    loadComponent: () => import('./features/empresas/talento').then(m => m.Talento),
   },
   {
     path: 'planes',
     canActivate: [authGuard, rolGuard('empresa')],
-    data: { titulo: 'planes' },
-    loadComponent: () => import('./features/proximamente/proximamente').then(m => m.Proximamente),
+    loadComponent: () => import('./features/empresas/planes').then(m => m.Planes),
   },
   { path: '**', redirectTo: '' },
 ];

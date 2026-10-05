@@ -108,3 +108,14 @@ export function hace(fechaISO: string): string {
   if (d < 30) return d === 1 ? 'hace 1 día' : `hace ${d} días`;
   return new Date(fechaISO).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+export interface SesionVivo {
+  id: string;
+  anfitrion_id: string;
+  anfitrion_nombre: string;
+  titulo: string;
+  descripcion: string;
+  inicia_en: string;
+  sala: string;
+  estado: 'programada' | 'en_vivo' | 'finalizada';
+}

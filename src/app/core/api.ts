@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import {
-  Comentario, DetallePublicacion, Portafolio, PerfilEstudiante, Propuesta, Publicacion, Suscripcion, TarjetaTalento,
+  Comentario, DetallePublicacion, Portafolio, PerfilEstudiante, Propuesta, Publicacion, SesionVivo, Suscripcion, TarjetaTalento,
 } from './modelos';
 
 /** Un solo lugar para todas las llamadas a la API. El token lo agrega el interceptor. */
@@ -65,5 +65,17 @@ export class Api {
 
   suscribirse(periodo: 'mensual' | 'anual'): Observable<Suscripcion> {
     return this.http.post<{ suscripcion: Suscripcion }>(`${this.base}/suscripciones`, { periodo }).pipe(map(r => r.suscripcion));
+  }
+
+  sesiones(): Observable<SesionVivo[]> {
+    return this.http.get<{ sesiones: SesionVivo[] }>(`${this.base}/sesiones`).pipe(map(r => r.sesiones));
+  }
+
+  crearSesion(datos: { titulo: string; descripcion: string; inicia_en: string }): Observable<SesionVivo> {
+    return this.http.post<{ sesion: SesionVivo }>(`${this.base}/sesiones`, datos).pipe(map(r => r.sesion));
+  }
+
+  cambiarEstadoSesion(id: string, estado: 'en_vivo' | 'finalizada'): Observable<unknown> {
+    return this.http.patch(`${this.base}/sesiones/${id}`, { estado });
   }
 }
