@@ -1,0 +1,183 @@
+<section class="contenedor">
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (datos(); as d) {
+    <!-- Encabezado: quién es y cómo contactarlo -->
+    <header class="card encabezado">
+      <div class="identidad">
+        <div class="avatar" aria-hidden="true">{{ iniciales() }}</div>
+        <div class="datos-perfil">
+          <h1>{{ d.perfil.nombre }}</h1>
+          @if (titular()) { <p class="titular">{{ titular() }}</p> }
+          @if (d.perfil.ciudad) { <p class="tenue">{{ d.perfil.ciudad }}</p> }
+          @if (d.perfil.biografia) { <p class="bio">{{ d.perfil.biografia }}</p> }
+          @if (d.perfil.stack.length) {
+            <div class="stack" aria-label="Tecnologías que declara">
+              @for (s of d.perfil.stack; track s) { <span>{{ s }}</span> }
+            </div>
+          }
+        </div>
+      </div>
+
+      <aside class="contacto">
+        @if (esPropio()) {
+          @if (completitud() < 100) {
+            <p class="tenue">Tu perfil está al {{ completitud() }} %. Complétalo para que las empresas te encuentren.</p>
+          }
+          <button class="btn btn-secundario" type="button" (click)="abrirEdicion()">Editar perfil</button>
+        } @else if (d.contacto) {
+          <span class="tenue">Contacto</span>
+          <strong class="correo">{{ d.contacto.correo }}</strong>
+          <a class="btn btn-primario" href="mailto:{{ d.contacto.correo }}">Escribir correo</a>
+        } @else if (d.contacto_bloqueado) {
+          <span class="tenue">Contacto</span>
+          <p class="bloqueo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+            </svg>
+            Disponible con suscripción
+          </p>
+          <a class="btn btn-primario" routerLink="/planes">Ver planes</a>
+        }
+      </aside>
+    </header>
+
+    @if (editando()) {
+      <form class="card formulario" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <h2>Editar perfil</h2>
+        <div class="dos">
+          <label class="campo">Programa<input type="text" formControlName="programa" maxlength="150"></label>
+          <label class="campo">Institución<input type="text" formControlName="institucion" maxlength="150"></label>
+          <label class="campo">Ciudad<input type="text" formControlName="ciudad" maxlength="100"></label>
+          <label class="campo">Stack (separado por comas)<input type="text" formControlName="stack" placeholder="Go, Angular, PostgreSQL"></label>
+        </div>
+        <label class="campo">Biografía<textarea formControlName="biografia" rows="3" maxlength="500"></textarea></label>
+        @if (errorForm()) { <p class="error" role="alert">{{ errorForm() }}</p> }
+        <div class="acciones">
+          <button class="btn btn-primario" type="submit" [disabled]="guardando()">Guardar</button>
+          <button class="btn btn-secundario" type="button" (click)="editando.set(false)">Cancelar</button>
+        </div>
+      </form>
+    }
+
+    <!-- Señales de calidad -->
+    <section class="senales" aria-label="Resumen">
+      <div class="card senal destacada">
+        <span class="etiqueta">Tasa de aceptación</span>
+        @if (d.tasa_aceptacion !== null) {
+          <strong>{{ d.tasa_aceptacion }} %</strong>
+          <span class="tenue">{{ d.totales.mejoras_aportadas }} de {{ d.totales.propuestas_hechas }} propuestas aceptadas por otros</span>
+        } @else {
+          <strong>—</strong>
+          <span class="tenue">Aún no ha propuesto mejoras</span>
+        }
+      </div>
+      <div class="card senal">
+        <span class="etiqueta">Mejoras aceptadas</span>
+        <strong>{{ d.totales.mejoras_aportadas }}</strong>
+        <span class="tenue">en código de otros estudiantes</span>
+      </div>
+      <div class="card senal">
+        <span class="etiqueta">Colaboradores</span>
+        <strong>{{ d.totales.colaboradores }}</strong>
+        <span class="tenue">personas distintas</span>
+      </div>
+      <div class="card senal">
+        <span class="etiqueta">Sesiones dictadas</span>
+        <strong>{{ d.totales.sesiones }}</strong>
+        <span class="tenue">explicando en vivo</span>
+      </div>
+    </section>
+
+    <div class="columnas">
+      <!-- Habilidades con evidencia -->
+      <section class="card bloque">
+        <h2>Habilidades demostradas</h2>
+        <p class="tenue">Según lo que ha publicado y las mejoras que otros le aceptaron.</p>
+        @for (h of habilidades(); track h.lenguaje) {
+          <div class="habilidad">
+            <div class="fila-habilidad">
+              <strong>{{ h.nombre }}</strong>
+              <span class="tenue">{{ h.aportes }} {{ h.aportes === 1 ? 'mejora' : 'mejoras' }} · {{ h.publicaciones }} {{ h.publicaciones === 1 ? 'publicación' : 'publicaciones' }}</span>
+            </div>
+            <div class="barra" role="img" [attr.aria-label]="h.nombre + ': ' + h.aportes + ' mejoras aceptadas y ' + h.publicaciones + ' publicaciones'">
+              <span class="aportes" [style.width.%]="h.anchoAportes"></span>
+              <span class="publicaciones" [style.width.%]="h.anchoPublicaciones"></span>
+            </div>
+          </div>
+        } @empty {
+          <p class="vacio">Todavía no hay evidencia suficiente.</p>
+        }
+        @if (habilidades().length) {
+          <div class="leyenda"><span><i class="aportes"></i>Mejoras aceptadas</span><span><i class="publicaciones"></i>Publicaciones</span></div>
+        }
+      </section>
+
+      <!-- Constancia -->
+      <section class="card bloque">
+        <h2>Actividad</h2>
+        <p class="tenue">{{ mapa().total }} {{ mapa().total === 1 ? 'contribución' : 'contribuciones' }} en los últimos 6 meses</p>
+        <div class="mapa" role="img" [attr.aria-label]="mapa().total + ' contribuciones en los últimos 6 meses'">
+          @for (c of mapa().celdas; track c.clave) {
+            <span class="dia n{{ c.nivel }}" [title]="c.etiqueta"></span>
+          }
+        </div>
+        <div class="leyenda-mapa">
+          <span>Menos</span>
+          <span class="dia n0"></span><span class="dia n1"></span><span class="dia n2"></span><span class="dia n3"></span><span class="dia n4"></span>
+          <span>Más</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- Lo mejor de su trabajo -->
+    <section class="seccion">
+      <h2>Mejores aportes</h2>
+      <div class="destacados">
+        @for (x of d.destacados; track x.propuesta_id) {
+          <a class="card aporte" [routerLink]="['/publicacion', x.publicacion_id]">
+            <div class="meta">
+              <span class="chip">{{ nombreLenguaje(x.lenguaje) }}</span>
+              <span class="tenue">{{ hace(x.fecha) }}</span>
+            </div>
+            <strong>«{{ x.titulo }}»</strong>
+            <span class="tenue">Código de &#64;{{ x.autor_original }}</span>
+            <p class="explicacion">{{ x.explicacion }}</p>
+            <span class="ver">Ver la solución →</span>
+          </a>
+        } @empty {
+          <p class="vacio">{{ esPropio() ? 'Cuando otros acepten tus mejoras, aparecerán aquí.' : 'Todavía no tiene mejoras aceptadas.' }}</p>
+        }
+      </div>
+    </section>
+
+    <!-- Actividad reciente, resumida -->
+    <section class="seccion">
+      <h2>Actividad reciente</h2>
+      <ul class="card reciente">
+        @for (e of recientes(); track e.id + e.tipo) {
+          <li>
+            <span class="punto {{ e.tipo }}" aria-hidden="true"></span>
+            @if (e.publicacion_id) {
+              <a [routerLink]="['/publicacion', e.publicacion_id]">{{ textoEvento(e) }}</a>
+            } @else {
+              <span>{{ textoEvento(e) }}</span>
+            }
+            <span class="fecha">{{ hace(e.fecha) }}</span>
+          </li>
+        } @empty {
+          <li class="vacio">Sin actividad todavía.</li>
+        }
+      </ul>
+      @if (d.historial.length > 5) {
+        <button class="btn btn-secundario" type="button" (click)="verTodo.set(!verTodo())">
+          {{ verTodo() ? 'Ver menos' : 'Ver toda la actividad (' + d.historial.length + ')' }}
+        </button>
+      }
+    </section>
+  } @else if (!error()) {
+    <p class="tenue">Cargando…</p>
+  }
+</section>
