@@ -58,9 +58,36 @@ export interface EventoHistorial {
   fecha: string;
 }
 
+export interface Habilidad {
+  lenguaje: string;
+  publicaciones: number;
+  aportes: number;
+}
+
+export interface Destacado {
+  propuesta_id: string;
+  publicacion_id: string;
+  titulo: string;
+  lenguaje: string;
+  autor_original: string;
+  explicacion: string;
+  fecha: string;
+}
+
 export interface Portafolio {
   perfil: PerfilEstudiante;
-  totales: { publicaciones: number; mejoras_aportadas: number; mejoras_recibidas: number; sesiones: number };
+  totales: {
+    publicaciones: number;
+    propuestas_hechas: number;
+    mejoras_aportadas: number;
+    mejoras_recibidas: number;
+    colaboradores: number;
+    sesiones: number;
+  };
+  tasa_aceptacion: number | null;
+  habilidades: Habilidad[];
+  destacados: Destacado[];
+  actividad: { fecha: string; total: number }[];
   historial: EventoHistorial[];
   contacto: { correo: string } | null;
   contacto_bloqueado: boolean;
@@ -118,4 +145,14 @@ export interface SesionVivo {
   inicia_en: string;
   sala: string;
   estado: 'programada' | 'en_vivo' | 'finalizada';
+}
+
+const NOMBRES_LENGUAJE: Record<string, string> = {
+  go: 'Go', angular: 'Angular', typescript: 'TypeScript', javascript: 'JavaScript',
+  python: 'Python', java: 'Java', php: 'PHP', sql: 'SQL', otro: 'Otro',
+};
+
+/** Nombre correcto para mostrar: "typescript" -> "TypeScript". */
+export function nombreLenguaje(valor: string): string {
+  return NOMBRES_LENGUAJE[valor] ?? valor.charAt(0).toUpperCase() + valor.slice(1);
 }
