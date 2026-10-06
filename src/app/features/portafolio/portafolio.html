@@ -4,179 +4,204 @@
   }
 
   @if (datos(); as d) {
-    <!-- Encabezado: quién es y cómo contactarlo -->
-    <header class="card encabezado">
-      <div class="identidad">
-        <div class="avatar" aria-hidden="true">{{ iniciales() }}</div>
-        <div class="datos-perfil">
-          <h1>{{ d.perfil.nombre }}</h1>
-          @if (titular()) { <p class="titular">{{ titular() }}</p> }
-          @if (d.perfil.ciudad) { <p class="tenue">{{ d.perfil.ciudad }}</p> }
-          @if (d.perfil.biografia) { <p class="bio">{{ d.perfil.biografia }}</p> }
-          @if (d.perfil.stack.length) {
-            <div class="stack" aria-label="Tecnologías que declara">
-              @for (s of d.perfil.stack; track s) { <span>{{ s }}</span> }
-            </div>
-          }
-        </div>
-      </div>
-
-      <aside class="contacto">
-        @if (esPropio()) {
-          @if (completitud() < 100) {
-            <p class="tenue">Tu perfil está al {{ completitud() }} %. Complétalo para que las empresas te encuentren.</p>
-          }
-          <button class="btn btn-secundario" type="button" (click)="abrirEdicion()">Editar perfil</button>
-        } @else if (d.contacto) {
-          <span class="tenue">Contacto</span>
-          <strong class="correo">{{ d.contacto.correo }}</strong>
-          <a class="btn btn-primario" href="mailto:{{ d.contacto.correo }}">Escribir correo</a>
-        } @else if (d.contacto_bloqueado) {
-          <span class="tenue">Contacto</span>
-          <p class="bloqueo">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-              <rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
-            </svg>
-            Disponible con suscripción
-          </p>
-          <a class="btn btn-primario" routerLink="/planes">Ver planes</a>
-        }
-      </aside>
-    </header>
-
     @if (editando()) {
-      <form class="card formulario" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
-        <h2>Editar perfil</h2>
-        <div class="dos">
-          <label class="campo">Programa<input type="text" formControlName="programa" maxlength="150"></label>
-          <label class="campo">Institución<input type="text" formControlName="institucion" maxlength="150"></label>
-          <label class="campo">Ciudad<input type="text" formControlName="ciudad" maxlength="100"></label>
-          <label class="campo">Stack (separado por comas)<input type="text" formControlName="stack" placeholder="Go, Angular, PostgreSQL"></label>
-        </div>
-        <label class="campo">Biografía<textarea formControlName="biografia" rows="3" maxlength="500"></textarea></label>
-        @if (errorForm()) { <p class="error" role="alert">{{ errorForm() }}</p> }
-        <div class="acciones">
-          <button class="btn btn-primario" type="submit" [disabled]="guardando()">Guardar</button>
-          <button class="btn btn-secundario" type="button" (click)="editando.set(false)">Cancelar</button>
-        </div>
-      </form>
-    }
+      <app-editar-perfil [perfil]="d.perfil" (guardado)="alGuardar()" (cancelado)="editando.set(false)" />
+    } @else {
 
-    <!-- Señales de calidad -->
-    <section class="senales" aria-label="Resumen">
-      <div class="card senal destacada">
-        <span class="etiqueta">Tasa de aceptación</span>
-        @if (d.tasa_aceptacion !== null) {
-          <strong>{{ d.tasa_aceptacion }} %</strong>
-          <span class="tenue">{{ d.totales.mejoras_aportadas }} de {{ d.totales.propuestas_hechas }} propuestas aceptadas por otros</span>
-        } @else {
-          <strong>—</strong>
-          <span class="tenue">Aún no ha propuesto mejoras</span>
-        }
-      </div>
-      <div class="card senal">
-        <span class="etiqueta">Mejoras aceptadas</span>
-        <strong>{{ d.totales.mejoras_aportadas }}</strong>
-        <span class="tenue">en código de otros estudiantes</span>
-      </div>
-      <div class="card senal">
-        <span class="etiqueta">Colaboradores</span>
-        <strong>{{ d.totales.colaboradores }}</strong>
-        <span class="tenue">personas distintas</span>
-      </div>
-      <div class="card senal">
-        <span class="etiqueta">Sesiones dictadas</span>
-        <strong>{{ d.totales.sesiones }}</strong>
-        <span class="tenue">explicando en vivo</span>
-      </div>
-    </section>
-
-    <div class="columnas">
-      <!-- Habilidades con evidencia -->
-      <section class="card bloque">
-        <h2>Habilidades demostradas</h2>
-        <p class="tenue">Según lo que ha publicado y las mejoras que otros le aceptaron.</p>
-        @for (h of habilidades(); track h.lenguaje) {
-          <div class="habilidad">
-            <div class="fila-habilidad">
-              <strong>{{ h.nombre }}</strong>
-              <span class="tenue">{{ h.aportes }} {{ h.aportes === 1 ? 'mejora' : 'mejoras' }} · {{ h.publicaciones }} {{ h.publicaciones === 1 ? 'publicación' : 'publicaciones' }}</span>
-            </div>
-            <div class="barra" role="img" [attr.aria-label]="h.nombre + ': ' + h.aportes + ' mejoras aceptadas y ' + h.publicaciones + ' publicaciones'">
-              <span class="aportes" [style.width.%]="h.anchoAportes"></span>
-              <span class="publicaciones" [style.width.%]="h.anchoPublicaciones"></span>
-            </div>
-          </div>
-        } @empty {
-          <p class="vacio">Todavía no hay evidencia suficiente.</p>
-        }
-        @if (habilidades().length) {
-          <div class="leyenda"><span><i class="aportes"></i>Mejoras aceptadas</span><span><i class="publicaciones"></i>Publicaciones</span></div>
-        }
-      </section>
-
-      <!-- Constancia -->
-      <section class="card bloque">
-        <h2>Actividad</h2>
-        <p class="tenue">{{ mapa().total }} {{ mapa().total === 1 ? 'contribución' : 'contribuciones' }} en los últimos 6 meses</p>
-        <div class="mapa" role="img" [attr.aria-label]="mapa().total + ' contribuciones en los últimos 6 meses'">
-          @for (c of mapa().celdas; track c.clave) {
-            <span class="dia n{{ c.nivel }}" [title]="c.etiqueta"></span>
+      <!-- 1. Quién es -->
+      <header class="card encabezado">
+        <div class="avatar" aria-hidden="true">{{ iniciales() }}</div>
+        <div class="identidad">
+          <h1>{{ d.perfil.nombre }}</h1>
+          @if (titular()) {
+            <p class="titular">{{ titular() }}</p>
+          }
+          @if (datosBasicos().length) {
+            <p class="basicos">{{ datosBasicos().join(' · ') }}</p>
+          }
+          @if (disponibilidad(); as disp) {
+            <span class="disponible" [class.no]="disp.valor === 'no_disponible'">{{ disp.etiqueta }}</span>
           }
         </div>
-        <div class="leyenda-mapa">
-          <span>Menos</span>
-          <span class="dia n0"></span><span class="dia n1"></span><span class="dia n2"></span><span class="dia n3"></span><span class="dia n4"></span>
-          <span>Más</span>
-        </div>
-      </section>
-    </div>
+        @if (esPropio()) {
+          <button class="btn btn-secundario editar" type="button" (click)="editando.set(true)">Editar perfil</button>
+        }
+      </header>
 
-    <!-- Lo mejor de su trabajo -->
-    <section class="seccion">
-      <h2>Mejores aportes</h2>
-      <div class="destacados">
-        @for (x of d.destacados; track x.propuesta_id) {
-          <a class="card aporte" [routerLink]="['/publicacion', x.publicacion_id]">
-            <div class="meta">
-              <span class="chip">{{ nombreLenguaje(x.lenguaje) }}</span>
-              <span class="tenue">{{ hace(x.fecha) }}</span>
+      <div class="cuerpo">
+        <div class="principal">
+          @if (d.perfil.biografia) {
+            <section class="seccion">
+              <h2>Acerca de</h2>
+              <p class="texto">{{ d.perfil.biografia }}</p>
+            </section>
+          }
+
+          @if (experiencia().length) {
+            <section class="seccion">
+              <h2>Experiencia</h2>
+              @for (e of experiencia(); track $index) {
+                <div class="item">
+                  <strong>{{ e.cargo }}</strong>
+                  <span>{{ e.empresa }}</span>
+                  <span class="tenue">{{ e.periodo }}</span>
+                  @if (e.descripcion) { <p class="texto">{{ e.descripcion }}</p> }
+                </div>
+              }
+            </section>
+          }
+
+          @if (formacion(); as f) {
+            <section class="seccion">
+              <h2>Formación</h2>
+              <div class="item">
+                <strong>{{ f.programa }}</strong>
+                <span>{{ f.institucion }}</span>
+                @if (f.detalle) { <span class="tenue">{{ f.detalle }}</span> }
+              </div>
+            </section>
+          }
+
+          @if (esPropio() && (!d.perfil.biografia || !formacion() || !d.perfil.titular)) {
+            <div class="completar">
+              <strong>Completa tu perfil</strong>
+              <span>Las empresas buscan primero tu formación, tu disponibilidad y una presentación corta.</span>
+              <button class="btn btn-primario" type="button" (click)="editando.set(true)">Completar ahora</button>
             </div>
-            <strong>«{{ x.titulo }}»</strong>
-            <span class="tenue">Código de &#64;{{ x.autor_original }}</span>
-            <p class="explicacion">{{ x.explicacion }}</p>
-            <span class="ver">Ver la solución →</span>
-          </a>
-        } @empty {
-          <p class="vacio">{{ esPropio() ? 'Cuando otros acepten tus mejoras, aparecerán aquí.' : 'Todavía no tiene mejoras aceptadas.' }}</p>
-        }
-      </div>
-    </section>
+          }
 
-    <!-- Actividad reciente, resumida -->
-    <section class="seccion">
-      <h2>Actividad reciente</h2>
-      <ul class="card reciente">
-        @for (e of recientes(); track e.id + e.tipo) {
-          <li>
-            <span class="punto {{ e.tipo }}" aria-hidden="true"></span>
-            @if (e.publicacion_id) {
-              <a [routerLink]="['/publicacion', e.publicacion_id]">{{ textoEvento(e) }}</a>
-            } @else {
-              <span>{{ textoEvento(e) }}</span>
+          <!-- 2. Evidencia que respalda lo anterior -->
+          <section class="seccion">
+            <h2>Evidencia en DevConnect</h2>
+            <div class="senales">
+              <div class="senal" [class.destacada]="d.tasa_aceptacion !== null">
+                <span class="etiqueta">Tasa de aceptación</span>
+                <strong>{{ d.tasa_aceptacion !== null ? d.tasa_aceptacion + ' %' : 'Sin datos' }}</strong>
+                <span class="tenue">
+                  {{ d.tasa_aceptacion !== null ? d.totales.mejoras_aportadas + ' de ' + d.totales.propuestas_hechas + ' propuestas aceptadas' : 'Aún no ha propuesto mejoras' }}
+                </span>
+              </div>
+              <div class="senal"><span class="etiqueta">Mejoras aceptadas</span><strong>{{ d.totales.mejoras_aportadas }}</strong><span class="tenue">en código de otros</span></div>
+              <div class="senal"><span class="etiqueta">Colaboradores</span><strong>{{ d.totales.colaboradores }}</strong><span class="tenue">personas distintas</span></div>
+              <div class="senal"><span class="etiqueta">Sesiones dictadas</span><strong>{{ d.totales.sesiones }}</strong><span class="tenue">explicando en vivo</span></div>
+            </div>
+          </section>
+
+          @if (d.destacados.length) {
+            <section class="seccion">
+              <h2>Mejores aportes</h2>
+              <div class="destacados">
+                @for (x of d.destacados; track x.propuesta_id) {
+                  <a class="aporte" [routerLink]="['/publicacion', x.publicacion_id]">
+                    <div class="meta"><span class="chip">{{ nombreLenguaje(x.lenguaje) }}</span><span class="tenue">{{ hace(x.fecha) }}</span></div>
+                    <strong>«{{ x.titulo }}»</strong>
+                    <span class="tenue">Código de &#64;{{ x.autor_original }}</span>
+                    <p class="explicacion">{{ x.explicacion }}</p>
+                    <span class="ver">Ver la solución →</span>
+                  </a>
+                }
+              </div>
+            </section>
+          }
+
+          <section class="seccion">
+            <h2>Actividad</h2>
+            <p class="tenue">{{ mapa().total }} {{ mapa().total === 1 ? 'contribución' : 'contribuciones' }} en los últimos 6 meses</p>
+            <div class="mapa-envoltura">
+              <div class="dias-semana" aria-hidden="true"><span></span><span>Lun</span><span></span><span>Mié</span><span></span><span>Vie</span><span></span></div>
+              <div class="mapa-columna">
+                <div class="meses" aria-hidden="true">
+                  @for (m of mapa().meses; track $index) { <span>{{ m }}</span> }
+                </div>
+                <div class="mapa" role="img" [attr.aria-label]="mapa().total + ' contribuciones en los últimos 6 meses'">
+                  @for (c of mapa().celdas; track c.clave) { <span class="dia n{{ c.nivel }}" [title]="c.etiqueta"></span> }
+                </div>
+              </div>
+            </div>
+            <div class="leyenda-mapa">
+              <span>Menos</span><span class="dia n0"></span><span class="dia n1"></span><span class="dia n2"></span><span class="dia n3"></span><span class="dia n4"></span><span>Más</span>
+            </div>
+
+            @if (d.historial.length) {
+              <ul class="reciente">
+                @for (e of recientes(); track e.id + e.tipo) {
+                  <li>
+                    <span class="punto {{ e.tipo }}" aria-hidden="true"></span>
+                    @if (e.publicacion_id) {
+                      <a [routerLink]="['/publicacion', e.publicacion_id]">{{ textoEvento(e) }}</a>
+                    } @else {
+                      <span>{{ textoEvento(e) }}</span>
+                    }
+                    <span class="fecha">{{ hace(e.fecha) }}</span>
+                  </li>
+                }
+              </ul>
+              @if (d.historial.length > 5) {
+                <button class="enlace" type="button" (click)="verTodo.set(!verTodo())">
+                  {{ verTodo() ? 'Ver menos' : 'Ver toda la actividad (' + d.historial.length + ')' }}
+                </button>
+              }
             }
-            <span class="fecha">{{ hace(e.fecha) }}</span>
-          </li>
-        } @empty {
-          <li class="vacio">Sin actividad todavía.</li>
-        }
-      </ul>
-      @if (d.historial.length > 5) {
-        <button class="btn btn-secundario" type="button" (click)="verTodo.set(!verTodo())">
-          {{ verTodo() ? 'Ver menos' : 'Ver toda la actividad (' + d.historial.length + ')' }}
-        </button>
-      }
-    </section>
+          </section>
+        </div>
+
+        <!-- Columna lateral: contacto y datos de consulta rápida -->
+        <aside class="lateral">
+          @if (d.contacto && !esPropio()) {
+            <div class="caja contacto">
+              <h3>Contacto</h3>
+              <span class="correo">{{ d.contacto.correo }}</span>
+              <a class="btn btn-primario" href="mailto:{{ d.contacto.correo }}">Escribir correo</a>
+            </div>
+          } @else if (d.contacto_bloqueado) {
+            <div class="caja contacto bloqueado">
+              <h3>Contacto</h3>
+              <p>Los datos de contacto están disponibles con la suscripción de empresas.</p>
+              <a class="btn btn-primario" routerLink="/planes">Ver planes</a>
+            </div>
+          }
+
+          @if (aptitudes().length) {
+            <div class="caja">
+              <h3>Aptitudes</h3>
+              <ul class="aptitudes">
+                @for (a of aptitudes(); track a.nombre) {
+                  <li>
+                    <span class="nombre-aptitud">{{ a.nombre }}</span>
+                    @if (a.verificada) {
+                      <span class="verificada" title="Respaldado por actividad en DevConnect">✓ Verificada</span>
+                      <span class="tenue">{{ a.detalle }}</span>
+                    } @else {
+                      <span class="tenue">Declarada</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (d.perfil.idiomas.length) {
+            <div class="caja">
+              <h3>Idiomas</h3>
+              <ul class="simple">
+                @for (i of d.perfil.idiomas; track i) { <li>{{ i }}</li> }
+              </ul>
+            </div>
+          }
+
+          @if (d.perfil.github_url || d.perfil.linkedin_url || d.perfil.sitio_url) {
+            <div class="caja">
+              <h3>Enlaces</h3>
+              <ul class="simple">
+                @if (d.perfil.github_url) { <li><a [href]="d.perfil.github_url" target="_blank" rel="noopener noreferrer">GitHub ↗</a></li> }
+                @if (d.perfil.linkedin_url) { <li><a [href]="d.perfil.linkedin_url" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a></li> }
+                @if (d.perfil.sitio_url) { <li><a [href]="d.perfil.sitio_url" target="_blank" rel="noopener noreferrer">Sitio personal ↗</a></li> }
+              </ul>
+            </div>
+          }
+        </aside>
+      </div>
+    }
   } @else if (!error()) {
     <p class="tenue">Cargando…</p>
   }

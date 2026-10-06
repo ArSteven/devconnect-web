@@ -1,74 +1,101 @@
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../../core/api';
 import { AuthService } from '../../core/auth/auth.service';
-import { EventoHistorial, Portafolio as DatosPortafolio, hace, nombreLenguaje } from '../../core/modelos';
+import { DISPONIBILIDADES, EventoHistorial, MODALIDADES, Portafolio as DatosPortafolio, hace, nombreLenguaje } from '../../core/modelos';
 import { mensajeDeError } from '../../core/api-error';
+import { EditarPerfil } from './editar-perfil';
 
-interface Celda {
-  clave: string;
-  nivel: number;
-  etiqueta: string;
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+interface Aptitud {
+  nombre: string;
+  verificada: boolean;
+  detalle: string;
 }
 
+/**
+ * Portafolio con estructura de hoja de vida: primero la persona (quién es, qué estudia,
+ * disponibilidad, contacto) y después la evidencia de DevConnect que respalda lo que dice.
+ */
 @Component({
   selector: 'app-portafolio',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [RouterLink, EditarPerfil],
   templateUrl: './portafolio.html',
   styleUrl: './portafolio.css',
 })
 export class Portafolio {
   private api = inject(Api);
   private auth = inject(AuthService);
-  private fb = inject(FormBuilder);
 
-  /** Viene de la ruta /portafolio/:id */
   readonly id = input.required<string>();
 
   protected hace = hace;
   protected nombreLenguaje = nombreLenguaje;
-
   protected datos = signal<DatosPortafolio | null>(null);
   protected error = signal('');
-  protected verTodo = signal(false);
   protected editando = signal(false);
-  protected guardando = signal(false);
-  protected errorForm = signal('');
+  protected verTodo = signal(false);
 
   protected esPropio = computed(() => this.auth.usuario()?.id === this.id());
-  protected esEmpresa = computed(() => this.auth.usuario()?.rol === 'empresa');
 
-  protected iniciales = computed(() => {
-    const nombre = this.datos()?.perfil.nombre ?? '';
-    return nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
-  });
+  protected iniciales = computed(() =>
+    (this.datos()?.perfil.nombre ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join(''),
+  );
 
+  /** Si no escribió un titular, se arma uno con su formación. */
   protected titular = computed(() => {
     const p = this.datos()?.perfil;
-    return p ? [p.programa, p.institucion].filter(Boolean).join(' · ') : '';
+    if (!p) return '';
+    if (p.titular) return p.titular;
+    const estudio = p.programa || p.institucion;
+    return estudio ? `Estudiante de ${estudio}` : '';
   });
 
-  /** Qué tan completo está el perfil: solo se le muestra al dueño. */
-  protected completitud = computed(() => {
+  /** Línea bajo el nombre: ciudad · edad · modalidad. */
+  protected datosBasicos = computed(() => {
     const p = this.datos()?.perfil;
-    if (!p) return 100;
-    const campos = [p.programa, p.institucion, p.ciudad, p.biografia, p.stack.length ? 'si' : ''];
-    return Math.round((campos.filter(Boolean).length / campos.length) * 100);
+    if (!p) return [];
+    const modalidad = MODALIDADES.find(m => m.valor === p.modalidad)?.etiqueta;
+    return [p.ciudad, p.edad !== null ? `${p.edad} años` : '', modalidad ? `Trabajo ${modalidad.toLowerCase()}` : ''].filter(Boolean);
   });
 
-  protected habilidades = computed(() => {
-    const lista = this.datos()?.habilidades ?? [];
-    const max = Math.max(1, ...lista.map(h => h.aportes + h.publicaciones));
-    return lista.map(h => ({
-      ...h,
-      nombre: nombreLenguaje(h.lenguaje),
-      anchoAportes: (h.aportes / max) * 100,
-      anchoPublicaciones: (h.publicaciones / max) * 100,
-    }));
+  protected disponibilidad = computed(() => {
+    const p = this.datos()?.perfil;
+    return DISPONIBILIDADES.find(d => d.valor === p?.disponibilidad) ?? null;
   });
 
-  /** Mapa de calor de los últimos 6 meses, columnas por semana como en GitHub. */
+  protected formacion = computed(() => {
+    const p = this.datos()?.perfil;
+    if (!p || (!p.programa && !p.institucion)) return null;
+    const estado = p.estado_academico === 'egresado' ? 'Egresado' : p.estado_academico === 'cursando' ? 'En curso' : '';
+    const semestre = p.estado_academico !== 'egresado' && p.semestre ? `${p.semestre}.º semestre` : '';
+    const anios = p.anio_inicio ? `${p.anio_inicio} – ${p.anio_fin ?? 'actualidad'}` : '';
+    return { programa: p.programa, institucion: p.institucion, detalle: [estado, semestre, anios].filter(Boolean).join(' · ') };
+  });
+
+  /** Une lo que el estudiante declara con lo que demostró: lo demostrado va primero y marcado. */
+  protected aptitudes = computed<Aptitud[]>(() => {
+    const d = this.datos();
+    if (!d) return [];
+    const evidencia = new Map(d.habilidades.map(h => [h.lenguaje.toLowerCase(), h]));
+    const nombres = new Set([...d.habilidades.map(h => h.lenguaje.toLowerCase()), ...d.perfil.stack.map(s => s.toLowerCase())]);
+    const lista: Aptitud[] = [...nombres].map(n => {
+      const h = evidencia.get(n);
+      const partes = h
+        ? [h.aportes ? `${h.aportes} ${h.aportes === 1 ? 'mejora aceptada' : 'mejoras aceptadas'}` : '',
+           h.publicaciones ? `${h.publicaciones} ${h.publicaciones === 1 ? 'publicación' : 'publicaciones'}` : ''].filter(Boolean)
+        : [];
+      return { nombre: nombreLenguaje(n), verificada: !!h, detalle: partes.join(' · ') };
+    });
+    return lista.sort((a, b) => Number(b.verificada) - Number(a.verificada));
+  });
+
+  protected experiencia = computed(() =>
+    (this.datos()?.perfil.experiencia ?? []).map(e => ({ ...e, periodo: `${this.mes(e.inicio)} – ${e.fin ? this.mes(e.fin) : 'actualidad'}` })),
+  );
+
+  /** Mapa de actividad de 6 meses con etiquetas de mes por columna. */
   protected mapa = computed(() => {
     const d = this.datos();
     const porDia = new Map((d?.actividad ?? []).map(a => [a.fecha, a.total]));
@@ -76,31 +103,30 @@ export class Portafolio {
     hoy.setHours(0, 0, 0, 0);
     const inicio = new Date(hoy);
     inicio.setDate(inicio.getDate() - 181);
-    inicio.setDate(inicio.getDate() - inicio.getDay()); // arranca en domingo
+    inicio.setDate(inicio.getDate() - inicio.getDay());
 
-    const celdas: Celda[] = [];
+    const celdas: { clave: string; nivel: number; etiqueta: string }[] = [];
+    const meses: string[] = [];
+    let mesAnterior = -1;
     for (const dia = new Date(inicio); dia <= hoy; dia.setDate(dia.getDate() + 1)) {
+      if (dia.getDay() === 0) {
+        meses.push(dia.getMonth() !== mesAnterior ? MESES[dia.getMonth()] : '');
+        mesAnterior = dia.getMonth();
+      }
       const clave = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
       const n = porDia.get(clave) ?? 0;
-      const nivel = n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 3 : 4;
-      const fecha = dia.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-      celdas.push({ clave, nivel, etiqueta: `${n} ${n === 1 ? 'contribución' : 'contribuciones'} el ${fecha}` });
+      celdas.push({
+        clave,
+        nivel: n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 3 : 4,
+        etiqueta: `${n} ${n === 1 ? 'contribución' : 'contribuciones'} el ${dia.getDate()} de ${MESES[dia.getMonth()]}`,
+      });
     }
-    const total = (d?.actividad ?? []).reduce((s, a) => s + a.total, 0);
-    return { celdas, total };
+    return { celdas, meses, total: (d?.actividad ?? []).reduce((s, a) => s + a.total, 0) };
   });
 
   protected recientes = computed(() => {
     const h = this.datos()?.historial ?? [];
     return this.verTodo() ? h : h.slice(0, 5);
-  });
-
-  protected form = this.fb.nonNullable.group({
-    programa: ['', Validators.maxLength(150)],
-    institucion: ['', Validators.maxLength(150)],
-    ciudad: ['', Validators.maxLength(100)],
-    stack: [''],
-    biografia: ['', Validators.maxLength(500)],
   });
 
   constructor() {
@@ -119,43 +145,21 @@ export class Portafolio {
     }
   }
 
-  abrirEdicion(): void {
-    const p = this.datos()?.perfil;
-    if (!p) return;
-    this.form.setValue({
-      programa: p.programa, institucion: p.institucion, ciudad: p.ciudad,
-      stack: p.stack.join(', '), biografia: p.biografia,
-    });
-    this.errorForm.set('');
-    this.editando.set(true);
+  alGuardar(): void {
+    this.editando.set(false);
+    this.cargar(this.id());
   }
 
-  guardar(): void {
-    const v = this.form.getRawValue();
-    const stack = v.stack.split(',').map(s => s.trim()).filter(Boolean);
-    if (this.form.invalid || stack.length > 15) {
-      this.errorForm.set('Revisa los campos: el stack admite hasta 15 tecnologías.');
-      return;
-    }
-    this.guardando.set(true);
-    this.api.actualizarPerfil({ ...v, stack }).subscribe({
-      next: () => {
-        this.guardando.set(false);
-        this.editando.set(false);
-        this.cargar(this.id());
-      },
-      error: err => {
-        this.errorForm.set(mensajeDeError(err));
-        this.guardando.set(false);
-      },
-    });
+  private mes(aaaamm: string): string {
+    const [a, m] = aaaamm.split('-').map(Number);
+    return m ? `${MESES[m - 1]} ${a}` : aaaamm;
   }
 
   private cargar(id: string): void {
     this.error.set('');
     this.api.portafolio(id).subscribe({
       next: d => this.datos.set(d),
-      error: err => this.error.set(mensajeDeError(err, 'No se pudo cargar el portafolio.')),
+      error: err => this.error.set(mensajeDeError(err, 'No se pudo cargar el perfil.')),
     });
   }
 }

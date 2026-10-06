@@ -38,15 +38,57 @@ export interface DetallePublicacion extends Publicacion {
   comentarios: Comentario[];
 }
 
+export interface Experiencia {
+  cargo: string;
+  empresa: string;
+  inicio: string; // AAAA-MM
+  fin: string; // vacío = actual
+  descripcion: string;
+}
+
+export type Disponibilidad = '' | 'practicas' | 'medio_tiempo' | 'tiempo_completo' | 'freelance' | 'no_disponible';
+export type Modalidad = '' | 'presencial' | 'remoto' | 'hibrido';
+
 export interface PerfilEstudiante {
   id: string;
   nombre: string;
+  titular: string;
+  edad: number | null;
+  fecha_nacimiento?: string; // solo llega si es el propio perfil
   programa: string;
   institucion: string;
+  semestre: number | null;
+  estado_academico: '' | 'cursando' | 'egresado';
+  anio_inicio: number | null;
+  anio_fin: number | null;
   ciudad: string;
+  disponibilidad: Disponibilidad;
+  modalidad: Modalidad;
+  github_url: string;
+  linkedin_url: string;
+  sitio_url: string;
   stack: string[];
+  idiomas: string[];
+  experiencia: Experiencia[];
   biografia: string;
 }
+
+/** Lo que se envía al guardar el perfil. */
+export type PerfilEditable = Omit<PerfilEstudiante, 'id' | 'nombre' | 'edad' | 'fecha_nacimiento'> & { fecha_nacimiento: string };
+
+export const DISPONIBILIDADES: { valor: Disponibilidad; etiqueta: string }[] = [
+  { valor: 'practicas', etiqueta: 'Disponible para prácticas' },
+  { valor: 'medio_tiempo', etiqueta: 'Disponible medio tiempo' },
+  { valor: 'tiempo_completo', etiqueta: 'Disponible tiempo completo' },
+  { valor: 'freelance', etiqueta: 'Disponible para proyectos freelance' },
+  { valor: 'no_disponible', etiqueta: 'No disponible por ahora' },
+];
+
+export const MODALIDADES: { valor: Modalidad; etiqueta: string }[] = [
+  { valor: 'presencial', etiqueta: 'Presencial' },
+  { valor: 'remoto', etiqueta: 'Remoto' },
+  { valor: 'hibrido', etiqueta: 'Híbrido' },
+];
 
 export interface EventoHistorial {
   tipo: 'publicacion' | 'aporte' | 'recibida' | 'sesion';

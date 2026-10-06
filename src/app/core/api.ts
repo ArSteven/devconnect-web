@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import {
-  Comentario, DetallePublicacion, Portafolio, PerfilEstudiante, Propuesta, Publicacion, SesionVivo, Suscripcion, TarjetaTalento,
+  Comentario, DetallePublicacion, Portafolio, PerfilEditable, Propuesta, Publicacion, SesionVivo, Suscripcion, TarjetaTalento,
 } from './modelos';
 
 /** Un solo lugar para todas las llamadas a la API. El token lo agrega el interceptor. */
@@ -47,7 +47,7 @@ export class Api {
     return this.http.get<{ portafolio: Portafolio }>(`${this.base}/estudiantes/${estudianteId}/portafolio`).pipe(map(r => r.portafolio));
   }
 
-  actualizarPerfil(datos: Omit<PerfilEstudiante, 'id' | 'nombre'>): Observable<unknown> {
+  actualizarPerfil(datos: PerfilEditable): Observable<unknown> {
     return this.http.put(`${this.base}/estudiantes/yo/perfil`, datos);
   }
 
