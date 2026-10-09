@@ -1,0 +1,22 @@
+.contenedor { display: flex; flex-direction: column; gap: 24px; }
+.cabecera { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
+h1 { font-size: clamp(30px, 4.5vw, 46px); line-height: 1.25; }
+.resaltado { background: var(--coral); color: var(--tinta); }
+.bajada { margin-top: 10px; font-size: 15px; line-height: 1.7; color: #3D3B36; max-width: 640px; }
+.aviso-plan { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; padding: 18px 20px; background: var(--coral-fondo); }
+.aviso-plan div { display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 1.6; }
+.formulario { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+.reto { padding: 20px; display: flex; flex-direction: column; gap: 12px; text-decoration: none; color: inherit; box-shadow: 6px 6px 0 var(--coral); }
+.reto:hover { color: inherit; box-shadow: 8px 8px 0 var(--coral); }
+.reto.cerrado { box-shadow: 6px 6px 0 var(--linea); }
+.empresa { display: flex; align-items: center; gap: 10px; }
+.empresa div { display: flex; flex-direction: column; flex: 1; min-width: 0; font-size: 12px; color: var(--tenue); }
+.empresa strong { font-size: 14px; color: var(--tinta); }
+h3 { font-size: 18px; line-height: 1.35; letter-spacing: -0.02em; }
+.descripcion { font-size: 13px; line-height: 1.65; color: #3D3B36; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: auto; font-size: 13px; color: var(--tenue); }
+.limite { font-size: 12px; color: var(--tenue); }
+.mas { align-self: center; }

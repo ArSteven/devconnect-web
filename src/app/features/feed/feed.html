@@ -1,0 +1,217 @@
+<div class="feed">
+  <!-- Filtros -->
+  <aside class="filtros" aria-label="Filtros">
+    <button type="button" class="abrir-filtros" [attr.aria-expanded]="filtrosAbiertos()" aria-controls="panel-filtros"
+            (click)="filtrosAbiertos.set(!filtrosAbiertos())">
+      Filtros{{ filtrosActivos() ? ' (' + filtrosActivos() + ')' : '' }} <span aria-hidden="true">{{ filtrosAbiertos() ? '▴' : '▾' }}</span>
+    </button>
+    <div id="panel-filtros" class="panel" [class.abierto]="filtrosAbiertos()">
+      <div class="grupo">
+        <span class="titulo-grupo" id="g-tipo">Mostrar</span>
+        <div class="segmentos" role="group" aria-labelledby="g-tipo">
+          <button type="button" [class.on]="filtro().tipo === ''" [attr.aria-pressed]="filtro().tipo === ''" (click)="cambiar({ tipo: '' })">Todo</button>
+          <button type="button" [class.on]="filtro().tipo === 'pregunta'" [attr.aria-pressed]="filtro().tipo === 'pregunta'" (click)="cambiar({ tipo: 'pregunta' })">Preguntas</button>
+          <button type="button" [class.on]="filtro().tipo === 'reto'" [attr.aria-pressed]="filtro().tipo === 'reto'" (click)="cambiar({ tipo: 'reto' })">Retos</button>
+        </div>
+      </div>
+
+      <div class="grupo">
+        <span class="titulo-grupo" id="g-estado">Estado</span>
+        <div class="segmentos" role="group" aria-labelledby="g-estado">
+          <button type="button" [class.on]="filtro().estado === ''" [attr.aria-pressed]="filtro().estado === ''" (click)="cambiar({ estado: '' })">Todas</button>
+          <button type="button" [class.on]="filtro().estado === 'abierta'" [attr.aria-pressed]="filtro().estado === 'abierta'" (click)="cambiar({ estado: 'abierta' })">Abiertas</button>
+          <button type="button" [class.on]="filtro().estado === 'resuelta'" [attr.aria-pressed]="filtro().estado === 'resuelta'" (click)="cambiar({ estado: 'resuelta' })">Resueltas</button>
+        </div>
+      </div>
+
+      <div class="grupo">
+        <span class="titulo-grupo" id="g-lenguaje">Lenguaje</span>
+        <div class="lenguajes" role="group" aria-labelledby="g-lenguaje">
+          <button type="button" [class.on]="filtro().lenguaje === ''" [attr.aria-pressed]="filtro().lenguaje === ''" (click)="cambiar({ lenguaje: '' })">
+            <span class="todos" aria-hidden="true">*</span> Todos
+          </button>
+          @for (l of lenguajes; track l.valor) {
+            <button type="button" [class.on]="filtro().lenguaje === l.valor" [attr.aria-pressed]="filtro().lenguaje === l.valor" (click)="cambiar({ lenguaje: l.valor })">
+              <app-tecnologia [nombre]="l.valor" [tamano]="18" />
+            </button>
+          }
+        </div>
+      </div>
+
+      <label class="campo grupo">
+        <span class="titulo-grupo">Institución del autor</span>
+        <select [value]="filtro().institucion" (change)="cambiar({ institucion: $any($event.target).value })">
+          <option value="">Todas</option>
+          @for (o of catalogos()?.instituciones ?? []; track o.valor) {
+            <option [value]="o.valor">{{ o.valor }} ({{ o.total }})</option>
+          }
+          @if (institucionFuera()) {
+            <option [value]="filtro().institucion">{{ filtro().institucion }}</option>
+          }
+        </select>
+      </label>
+
+      @if (filtrosActivos() || filtro().q) {
+        <button type="button" class="limpiar" (click)="limpiar()">Limpiar filtros</button>
+      }
+    </div>
+  </aside>
+
+  <!-- Publicaciones -->
+  <section class="centro">
+    <div class="cabecera">
+      <div>
+        <h1>Feed</h1>
+        <p class="tenue">Código de la comunidad que espera tus mejoras.</p>
+      </div>
+      @if (esEstudiante()) {
+        <a class="btn btn-primario" routerLink="/publicar">+ Publicar código</a>
+      }
+    </div>
+
+    <label class="buscador">
+      <span class="sr-only">Buscar publicaciones por título o descripción</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <input type="search" placeholder="Buscar por título o descripción…" maxlength="100" [value]="texto()" (input)="texto.set($any($event.target).value)">
+    </label>
+
+    @if (error()) {
+      <div class="card vacio" role="alert">
+        <strong>No pudimos cargar el feed.</strong>
+        <span>{{ error() }}</span>
+        <button class="btn btn-secundario btn-pequeno" type="button" (click)="cambiar({})">Reintentar</button>
+      </div>
+    }
+
+    <div class="lista" [attr.aria-busy]="cargando()">
+      @if (cargando()) {
+        @for (n of [0, 1, 2]; track n) {
+          <div class="card pub esqueleto-pub" aria-hidden="true">
+            <div class="meta"><span class="esqueleto circulo"></span><span class="esqueleto" style="width: 40%; height: 14px"></span></div>
+            <span class="esqueleto" style="width: 70%; height: 20px"></span>
+            <span class="esqueleto" style="height: 150px; border-radius: 6px"></span>
+          </div>
+        }
+        <span class="sr-only" role="status">Cargando publicaciones…</span>
+      } @else {
+        @for (p of publicaciones(); track p.id; let i = $index) {
+          <article class="card pub card-interactiva aparecer" [class.reto]="p.tipo === 'reto'" [style.--i]="i % 20">
+            <header class="meta">
+              <app-avatar [nombre]="p.autor_nombre" [github]="p.autor_github" [tamano]="38" />
+              <div class="quien">
+                @if (p.tipo === 'reto') {
+                  <strong>{{ p.autor_nombre }}</strong>
+                } @else {
+                  <a [routerLink]="['/portafolio', p.autor_id]">{{ p.autor_nombre }}</a>
+                }
+                <span>{{ p.tipo === 'reto' ? 'Empresa' : (p.autor_institucion || 'Estudiante') }} · {{ hace(p.creado_en) }}</span>
+              </div>
+              <app-tecnologia class="lenguaje" [nombre]="p.lenguaje" [tamano]="28" [conNombre]="false" />
+            </header>
+
+            <a class="titulo" [routerLink]="['/publicacion', p.id]">
+              @if (p.tipo === 'reto') { <span class="chip chip-reto">Reto</span> }
+              {{ p.titulo }}
+            </a>
+            @if (p.descripcion) {
+              <p class="descripcion">{{ p.descripcion }}</p>
+            }
+            @if (p.codigo) {
+              <a class="vista-codigo" [routerLink]="['/publicacion', p.id]" tabindex="-1" aria-hidden="true">
+                <app-codigo [codigo]="p.codigo" [lenguaje]="p.lenguaje" [maxLineas]="8" [totalLineas]="p.total_lineas" />
+              </a>
+            }
+
+            <footer class="pie">
+              @if (p.tipo === 'reto') {
+                <span class="chip" [class.chip-abierta]="cierre(p) !== 'Cerrado'">{{ cierre(p) }}</span>
+              } @else {
+                <span class="chip" [class.chip-resuelta]="p.estado === 'resuelta'" [class.chip-abierta]="p.estado === 'abierta'">
+                  {{ p.estado === 'resuelta' ? '✓ Resuelta' : 'Abierta' }}
+                </span>
+              }
+              <span>{{ p.total_propuestas }} {{ p.tipo === 'reto' ? (p.total_propuestas === 1 ? 'solución' : 'soluciones') : (p.total_propuestas === 1 ? 'propuesta' : 'propuestas') }}</span>
+              <span>{{ p.total_comentarios }} {{ p.total_comentarios === 1 ? 'comentario' : 'comentarios' }}</span>
+              @if (esEstudiante() && p.autor_id !== yo() && (p.tipo === 'reto' ? cierre(p) !== 'Cerrado' : p.estado === 'abierta')) {
+                <a class="proponer" [routerLink]="['/publicacion', p.id]" fragment="proponer">{{ p.tipo === 'reto' ? 'Resolver →' : 'Proponer mejora →' }}</a>
+              }
+            </footer>
+          </article>
+        } @empty {
+          <div class="card vacio">
+            @if (filtrosActivos() || filtro().q) {
+              <strong>No encontramos publicaciones con estos filtros.</strong>
+              <span class="tenue">Prueba con otra palabra o quita algún filtro.</span>
+              <button class="btn btn-secundario btn-pequeno" type="button" (click)="limpiar()">Limpiar filtros</button>
+            } @else {
+              <strong>Todavía no hay publicaciones.</strong>
+              @if (esEstudiante()) {
+                <span>Sé el primero: publica un código que no te funcione o que quieras mejorar. Otros estudiantes te propondrán cambios.</span>
+                <a class="btn btn-primario" routerLink="/publicar">+ Publicar código</a>
+              } @else {
+                <span>Cuando los estudiantes publiquen código, aparecerá aquí.</span>
+              }
+            }
+          </div>
+        }
+      }
+    </div>
+
+    @if (cargandoMas()) {
+      <app-cargando texto="Cargando más publicaciones…" />
+    } @else if (hayMas() && !cargando()) {
+      <button class="btn btn-secundario mas" type="button" (click)="cargarMas()">Cargar más</button>
+    }
+  </section>
+
+  <!-- Columna lateral -->
+  <aside class="lateral">
+    <section class="card caja">
+      <h2><span class="punto-vivo" aria-hidden="true"></span> Sesiones en vivo</h2>
+      @if (sesiones() === null) {
+        <span class="esqueleto" style="height: 60px"></span>
+      } @else {
+        @for (s of proximas(); track s.id) {
+          <div class="sesion" [class.envivo]="s.estado === 'en_vivo'">
+            <span class="cuando">
+              @if (s.estado === 'en_vivo') { <strong class="vivo">En vivo ahora</strong> } @else { <strong>{{ cuenta(s) }}</strong> · {{ fechaCorta(s.inicia_en) }} }
+            </span>
+            <strong class="titulo-sesion">{{ s.titulo }}</strong>
+            <span class="anfitrion"><app-avatar [nombre]="s.anfitrion_nombre" [github]="s.anfitrion_github" [tamano]="22" /> {{ s.anfitrion_nombre }}</span>
+            @if (s.estado === 'en_vivo') {
+              <a class="btn btn-primario btn-pequeno" [href]="sala(s)" target="_blank" rel="noopener">Entrar a la sala ↗</a>
+            }
+          </div>
+        } @empty {
+          <p class="invitacion">No hay sesiones programadas. ¿Dominas un tema? Explícalo en vivo y súmalo a tu perfil.</p>
+        }
+        <a class="enlace" routerLink="/sesiones" [queryParams]="esEstudiante() && !proximas().length ? { programar: 1 } : {}">
+          {{ esEstudiante() && !proximas().length ? 'Programar la primera →' : 'Ver todas las sesiones →' }}
+        </a>
+      }
+    </section>
+
+    <section class="card caja">
+      <h2>Destacados {{ destacados()?.dias === 30 ? 'del mes' : 'de la semana' }}</h2>
+      @if (destacados() === null) {
+        <span class="esqueleto" style="height: 90px"></span>
+      } @else {
+        <ol class="destacados">
+          @for (e of destacados()!.estudiantes; track e.id; let i = $index) {
+            <li>
+              <span class="puesto">{{ i + 1 }}</span>
+              <app-avatar [nombre]="e.nombre" [github]="e.github_url" [tamano]="32" />
+              <a [routerLink]="['/portafolio', e.id]" class="quien-destacado">
+                <strong>{{ e.nombre }}</strong>
+                <span>{{ e.institucion || 'Estudiante' }}</span>
+              </a>
+              <span class="mejoras" [title]="e.mejoras + ' mejoras aceptadas'">+{{ e.mejoras }}</span>
+            </li>
+          } @empty {
+            <p class="invitacion">Aún no hay mejoras aceptadas. Propón una y aparece aquí.</p>
+          }
+        </ol>
+      }
+    </section>
+  </aside>
+</div>

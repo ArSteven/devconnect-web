@@ -2,16 +2,65 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>devconnect</title>
+  <title>DevConnect · De "hola mundo" a tu primer empleo</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Aprende programando con otros: publica tu código, recibe mejoras y construye tu portafolio.">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <meta name="description" content="De hola mundo a tu primer empleo: aprende programando con otros y construye un perfil que las empresas pueden verificar.">
+  <meta name="theme-color" content="#F3F1EA">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_CO">
+  <meta property="og:site_name" content="DevConnect">
+  <meta property="og:title" content="DevConnect · De &quot;hola mundo&quot; a tu primer empleo">
+  <meta property="og:description" content="De hola mundo a tu primer empleo: aprende programando con otros y construye un perfil que las empresas pueden verificar.">
+  <meta property="og:url" content="https://devconnect-web-mauve.vercel.app/">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Pantalla de entrada: va aquí y no en Angular para verse desde el primer instante. */
+    #entrada {
+      position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+      background-color: #F3F1EA;
+      background-image: linear-gradient(#E3DFD3 1px, transparent 1px), linear-gradient(90deg, #E3DFD3 1px, transparent 1px);
+      background-size: 28px 28px;
+      transition: opacity .35s ease, visibility .35s;
+    }
+    #entrada.fuera { opacity: 0; visibility: hidden; }
+    /* La D del logo es la primera letra de "evconnect": alto de mayúscula, sobre la línea base y sin separación. */
+    #entrada .marca { display: flex; align-items: baseline; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 34px; }
+    #entrada svg { width: auto; height: .73em; height: 1cap; }
+    #entrada .cursor { animation: entrada-cursor .5s steps(1) 3; }
+    #entrada .parentesis { stroke-dasharray: 1; stroke-dashoffset: 1; animation: entrada-trazo .55s .2s cubic-bezier(.6, 0, .3, 1) forwards; }
+    #entrada .palabra {
+      display: inline-block; overflow: hidden; white-space: nowrap; width: 0;
+      font-size: 34px; font-weight: 800; letter-spacing: -0.03em; color: #141414;
+      animation: entrada-escribir .6s .6s steps(9, end) forwards;
+    }
+    @keyframes entrada-cursor { 50% { opacity: .12; } }
+    @keyframes entrada-trazo { to { stroke-dashoffset: 0; } }
+    @keyframes entrada-escribir { to { width: 9.4ch; } }
+    @media (prefers-reduced-motion: reduce) {
+      #entrada .cursor, #entrada .parentesis, #entrada .palabra { animation: none; }
+      #entrada .parentesis { stroke-dashoffset: 0; }
+      #entrada .palabra { width: auto; }
+    }
+  </style>
+  <noscript><style>#entrada { display: none; }</style></noscript>
 </head>
 <body>
+  <div id="entrada" aria-hidden="true">
+    <div class="marca">
+      <svg viewBox="6 3.5 27 33" fill="none">
+        <rect class="cursor" x="6" y="6" width="5" height="28" rx="1" fill="#2F4BFF"></rect>
+        <path class="parentesis" d="M17 6C35 6 35 34 17 34" stroke="#FF5A36" stroke-width="5" stroke-linecap="round" pathLength="1"></path>
+      </svg>
+      <span class="palabra">evconnect</span>
+    </div>
+  </div>
+  <script>document.getElementById('entrada').dataset.inicio = String(performance.now());</script>
   <app-root></app-root>
+  <noscript><p style="padding: 24px; font-family: monospace;">DevConnect necesita JavaScript para funcionar.</p></noscript>
 </body>
 </html>

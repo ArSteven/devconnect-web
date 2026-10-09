@@ -1,18 +1,20 @@
 .lienzo {
   max-width: 1340px;
   margin: 0 auto;
-  padding: 24px clamp(20px, 4vw, 48px) 64px;
+  padding: 40px clamp(16px, 4vw, 48px) 64px;
   display: flex;
   flex-wrap: wrap;
   gap: 48px;
   align-items: center;
 }
 
-.texto { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 28px; }
-h1 { font-size: clamp(36px, 5vw, 58px); letter-spacing: -0.05em; line-height: 1.02; }
-.resaltado { background: var(--azul); color: var(--papel); padding: 0 10px; }
-.bajada { font-size: 16px; line-height: 1.7; color: #3D3B36; max-width: 460px; }
+.texto { flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+/* Interlineado amplio: el bloque azul del resaltado no tapa la línea de arriba. */
+h1 { font-size: clamp(36px, 5vw, 58px); letter-spacing: -0.05em; line-height: 1.22; }
+.bajada { font-size: 16px; line-height: 1.7; color: #3D3B36; max-width: 480px; }
 .acciones { display: flex; flex-wrap: wrap; gap: 12px; }
+.acciones .btn { min-width: 170px; }
+.empresas { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700; color: var(--azul); }
 .pista { font-size: 13px; color: var(--tenue); }
 
 .editor {
@@ -64,8 +66,9 @@ h1 { font-size: clamp(36px, 5vw, 58px); letter-spacing: -0.05em; line-height: 1.
 .decision { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 18px; border-top: 1px solid #2A2A2A; }
 .decision button {
   flex: 1 1 200px; min-height: 46px; border-radius: 4px; cursor: pointer;
-  font: inherit; font-weight: 700; font-size: 13px;
+  font: inherit; font-weight: 700; font-size: 13px; transition: transform .08s;
 }
+.decision button:active { transform: translate(1px, 1px); }
 .opcion-m { border: 2px solid var(--coral); background: transparent; color: var(--coral); }
 .opcion-a { border: 0; background: var(--azul); color: #fff; }
 
@@ -78,7 +81,16 @@ h1 { font-size: clamp(36px, 5vw, 58px); letter-spacing: -0.05em; line-height: 1.
 .veredicto.ok { color: var(--verde); }
 .veredicto.parche { color: #FF8A6E; }
 .repetir {
-  align-self: flex-start; margin-top: 6px; min-height: 36px; padding: 0 14px;
+  align-self: flex-start; margin-top: 6px; min-height: 44px; padding: 0 14px;
   border: 1px solid #5A5850; border-radius: 4px; background: transparent;
   color: var(--editor-tenue); font: inherit; font-size: 12px; cursor: pointer;
+}
+
+/* "hola mundo" se ve como código dentro del título. */
+.hola { font: inherit; font-weight: 500; color: var(--azul); white-space: nowrap; }
+.hola::before, .hola::after { content: '"'; color: var(--tenue); }
+
+@media (max-width: 520px) {
+  .acciones .btn { flex: 1 1 100%; }
+  .codigo { min-height: 300px; }
 }

@@ -1,0 +1,177 @@
+<section class="contenedor">
+  <a [routerLink]="esReto() ? '/retos' : '/feed'" class="volver">← {{ esReto() ? 'Volver a los retos' : 'Volver al feed' }}</a>
+
+  @if (error()) {
+    <div class="card vacio" role="alert">
+      <strong>No pudimos abrir esta publicación.</strong>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  @if (pub(); as p) {
+    <header class="encabezado aparecer">
+      <div class="chips">
+        @if (p.tipo === 'reto') {
+          <span class="chip chip-reto">Reto de empresa</span>
+          <span class="chip" [class.chip-abierta]="!retoCerrado()">{{ retoCerrado() ? 'Cerrado' : 'Cierra ' + faltaParaCerrar().toLowerCase() }}</span>
+        } @else {
+          <span class="chip" [class.chip-resuelta]="p.estado === 'resuelta'" [class.chip-abierta]="p.estado === 'abierta'">{{ p.estado === 'resuelta' ? '✓ Resuelta' : 'Abierta' }}</span>
+        }
+        <span class="chip"><app-tecnologia [nombre]="p.lenguaje" [tamano]="16" /></span>
+      </div>
+      <h1>{{ p.titulo }}</h1>
+      <div class="autor">
+        <app-avatar [nombre]="p.autor_nombre" [github]="p.autor_github" [tamano]="40" />
+        <div>
+          @if (p.tipo === 'reto') {
+            <strong>{{ p.autor_nombre }}</strong>
+          } @else {
+            <a [routerLink]="['/portafolio', p.autor_id]"><strong>{{ p.autor_nombre }}</strong></a>
+          }
+          <span class="tenue">{{ p.tipo === 'reto' ? 'Empresa' : (p.autor_institucion || 'Estudiante') }} · {{ hace(p.creado_en) }}</span>
+        </div>
+      </div>
+      @if (p.descripcion) {
+        <p class="descripcion texto-libre">{{ p.descripcion }}</p>
+      }
+      @if (p.tipo === 'reto' && p.fecha_limite) {
+        <p class="limite">
+          {{ retoCerrado() ? 'Este reto cerró el ' : 'Recibe soluciones hasta el ' }}<strong>{{ fechaCorta(p.fecha_limite) }}</strong>.
+          La solución que elija la empresa queda en el perfil de quien la hizo.
+        </p>
+      }
+    </header>
+
+    <div class="editor">
+      <div class="barra">
+        <span>{{ p.tipo === 'reto' ? 'Código inicial' : 'Código' }} · {{ nombreLenguaje(p.lenguaje) }}</span>
+        @if (p.codigo) { <button type="button" class="copiar" (click)="copiar(p.codigo)">Copiar</button> }
+      </div>
+      @if (p.codigo) {
+        <app-codigo [codigo]="p.codigo" [lenguaje]="p.lenguaje" />
+      } @else {
+        <p class="sin-codigo">Este reto no trae código inicial: tu solución parte de cero.</p>
+      }
+    </div>
+
+    <section class="bloque">
+      <h2>{{ p.tipo === 'reto' ? 'Soluciones' : 'Propuestas de mejora' }} ({{ p.propuestas.length }})</h2>
+      @if (esAutor() && pendientes() > 0) {
+        <p class="aviso">
+          {{ p.tipo === 'reto'
+            ? 'Revisa las soluciones y elige la mejor: queda en el perfil del estudiante como "Resolvió el reto de ' + p.autor_nombre + '".'
+            : 'Eres el autor: revisa los cambios de cada propuesta y acepta la que resuelva tu problema. Quien la hizo la suma a su perfil.' }}
+        </p>
+      }
+
+      @for (pr of p.propuestas; track pr.id; let i = $index) {
+        <article class="card propuesta aparecer" [style.--i]="i" [class.aceptada]="pr.estado === 'aceptada'" [class.rechazada]="pr.estado === 'rechazada'">
+          <header class="meta">
+            <app-avatar [nombre]="pr.autor_nombre" [github]="pr.autor_github" [tamano]="34" />
+            <div class="quien">
+              <a [routerLink]="['/portafolio', pr.autor_id]">{{ pr.autor_nombre }}</a>
+              <span>{{ hace(pr.creado_en) }}</span>
+            </div>
+            <span class="chip estado-{{ pr.estado }}">
+              {{ pr.estado === 'aceptada' ? (p.tipo === 'reto' ? '✓ Ganadora' : '✓ Aceptada') : pr.estado === 'rechazada' ? 'Rechazada' : 'Pendiente' }}
+            </span>
+          </header>
+          <p class="explicacion texto-libre">{{ pr.explicacion }}</p>
+
+          <div class="vista">
+            <button type="button" [class.on]="!verCompleto().has(pr.id)" [attr.aria-pressed]="!verCompleto().has(pr.id)" (click)="verCompleto().has(pr.id) && alternarVista(pr.id)">Cambios</button>
+            <button type="button" [class.on]="verCompleto().has(pr.id)" [attr.aria-pressed]="verCompleto().has(pr.id)" (click)="!verCompleto().has(pr.id) && alternarVista(pr.id)">Código completo</button>
+          </div>
+          @if (verCompleto().has(pr.id)) {
+            <app-codigo [codigo]="pr.codigo" [lenguaje]="p.lenguaje" />
+          } @else {
+            <app-diff-codigo [original]="p.codigo" [propuesta]="pr.codigo" [lenguaje]="p.lenguaje" />
+          }
+
+          @if (esAutor() && pr.estado === 'pendiente') {
+            <div class="decision">
+              <button class="btn btn-primario" type="button" [disabled]="decidiendo() !== null" (click)="decidir(pr, 'aceptada')">
+                {{ decidiendo() === pr.id ? 'Guardando…' : p.tipo === 'reto' ? 'Elegir como ganadora' : 'Aceptar mejora' }}
+              </button>
+              <button class="btn btn-peligro" type="button" [disabled]="decidiendo() !== null" (click)="decidir(pr, 'rechazada')">Rechazar</button>
+            </div>
+            @if (errorDecision()?.id === pr.id) {
+              <p class="error" role="alert">{{ errorDecision()!.texto }}</p>
+            }
+          }
+        </article>
+      } @empty {
+        <p class="tenue vacio-bloque">
+          {{ p.tipo === 'reto' ? 'Todavía nadie ha enviado una solución.' : 'Todavía nadie ha propuesto una mejora.' }}
+          {{ puedeProponer() ? '¡Sé el primero!' : '' }}
+        </p>
+      }
+
+      @if (puedeProponer()) {
+        <form id="proponer" class="card formulario" [formGroup]="formPropuesta" (ngSubmit)="proponer()" novalidate>
+          <h3>{{ p.tipo === 'reto' ? 'Enviar tu solución' : 'Proponer una mejora' }}</h3>
+          <p class="tenue">
+            {{ p.codigo ? 'El campo ya tiene el código original: cambia solo lo necesario. Así el autor ve de un vistazo qué corregiste.' : 'Escribe tu solución completa.' }}
+          </p>
+          <label class="campo">
+            Tu versión del código
+            <textarea formControlName="codigo" rows="14" class="campo-codigo" appCampoCodigo aria-describedby="ayuda-tab"></textarea>
+            <span class="ayuda" id="ayuda-tab">Tab agrega sangría. Para salir del campo con el teclado, pulsa Esc y luego Tab.</span>
+          </label>
+          <div class="herramientas">
+            <button type="button" class="enlace" (click)="verMisCambios.set(!verMisCambios())" [attr.aria-expanded]="verMisCambios()">
+              {{ verMisCambios() ? 'Ocultar mis cambios' : 'Ver mis cambios' }}
+            </button>
+            @if (p.codigo) {
+              <button type="button" class="enlace" (click)="restaurarOriginal()">Volver al código original</button>
+            }
+          </div>
+          @if (verMisCambios()) {
+            <app-diff-codigo [original]="p.codigo" [propuesta]="codigoPropuesta()" [lenguaje]="p.lenguaje" />
+          }
+          <label class="campo">
+            Explica qué cambiaste y por qué
+            <textarea formControlName="explicacion" rows="4" maxlength="2000" placeholder="Ej.: Main terminaba antes que la goroutine. Agregué un WaitGroup para esperarla."></textarea>
+          </label>
+          @if (errorPropuesta()) {
+            <p class="error" role="alert">{{ errorPropuesta() }}</p>
+          }
+          <button class="btn btn-primario" type="submit" [disabled]="enviando()">
+            {{ enviando() ? 'Enviando…' : p.tipo === 'reto' ? 'Enviar solución →' : 'Proponer mejora →' }}
+          </button>
+        </form>
+      } @else if (retoCerrado() && auth.usuario()?.rol === 'estudiante') {
+        <p class="aviso">Este reto ya cerró y no recibe más soluciones.</p>
+      }
+    </section>
+
+    <section class="bloque">
+      <h2>Comentarios ({{ p.comentarios.length }})</h2>
+      @for (c of p.comentarios; track c.id) {
+        <div class="comentario">
+          <app-avatar [nombre]="c.autor_nombre" [github]="c.autor_github" [tamano]="32" />
+          <div class="cuerpo-comentario">
+            <div class="quien">
+              @if (c.autor_rol === 'empresa') {
+                <strong>{{ c.autor_nombre }}</strong> <span class="chip chip-reto">Empresa</span>
+              } @else {
+                <a [routerLink]="['/portafolio', c.autor_id]">{{ c.autor_nombre }}</a>
+              }
+              <span>· {{ hace(c.creado_en) }}</span>
+            </div>
+            <p class="texto-libre">{{ c.texto }}</p>
+          </div>
+        </div>
+      }
+      <form class="comentar" [formGroup]="formComentario" (ngSubmit)="comentar()" novalidate>
+        <label class="campo">
+          Tu comentario
+          <textarea formControlName="texto" rows="3" maxlength="2000" placeholder="Pregunta algo o sugiere una pista."></textarea>
+        </label>
+        <button class="btn btn-secundario" type="submit" [disabled]="comentando() || formComentario.invalid">{{ comentando() ? 'Publicando…' : 'Comentar' }}</button>
+      </form>
+    </section>
+  } @else if (!error()) {
+    <app-cargando texto="Cargando la publicación…" />
+  }
+</section>

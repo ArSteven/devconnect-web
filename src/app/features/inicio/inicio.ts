@@ -87,14 +87,16 @@ export class Inicio {
 
   protected estado = computed(() => {
     const escribiendo = this.lineas().find(l => l.escribiendo);
-    if (this.eleccion()) return { texto: 'cambio aceptado', clase: 'ok' };
-    if (this.t() < INICIO) return { texto: '"lanzo la goroutine y no imprime nada"', clase: '' };
+    if (this.eleccion()) return { texto: 'Cambio aceptado', clase: 'ok' };
+    if (this.t() < INICIO) return { texto: '"Lanzo la goroutine y no imprime nada"', clase: '' };
     if (escribiendo?.autor) return { texto: `${NOMBRE[escribiendo.autor]} está proponiendo un cambio…`, clase: escribiendo.autor };
-    if (this.t() >= FIN) return { texto: '2 propuestas · ¿cuál aceptas?', clase: 'claro' };
-    return { texto: 'esperando…', clase: '' };
+    if (this.t() >= FIN) return { texto: '2 propuestas · ¿Cuál aceptas?', clase: 'claro' };
+    return { texto: 'Esperando…', clase: '' };
   });
 
   constructor() {
+    // Con movimiento reducido, la demo arranca ya escrita: solo falta elegir.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) this.t.set(FIN);
     const reloj = setInterval(() => {
       if (this.t() < FIN + 5) this.t.update(v => v + 1);
     }, 65);
@@ -107,6 +109,6 @@ export class Inicio {
 
   repetir(): void {
     this.eleccion.set(null);
-    this.t.set(0);
+    this.t.set(matchMedia('(prefers-reduced-motion: reduce)').matches ? FIN : 0);
   }
 }

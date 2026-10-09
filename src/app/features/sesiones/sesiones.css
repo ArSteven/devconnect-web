@@ -1,0 +1,21 @@
+.contenedor { display: flex; flex-direction: column; gap: 22px; max-width: 920px; }
+.cabecera { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px; }
+h1 { font-size: clamp(30px, 4.5vw, 44px); }
+h2 { font-size: 22px; }
+h3 { font-size: 20px; line-height: 1.3; }
+.bajada { margin-top: 8px; font-size: 15px; line-height: 1.7; color: #3D3B36; max-width: 620px; }
+.guia { padding: 0; box-shadow: 4px 4px 0 var(--azul); }
+.guia summary { display: flex; align-items: center; min-height: 52px; padding: 0 18px; font-size: 14px; font-weight: 800; cursor: pointer; }
+.guia ol { margin: 0; padding: 0 22px 18px 40px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.65; }
+.formulario { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.seccion { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.lista { display: flex; flex-direction: column; gap: 18px; }
+.sesion { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+.sesion.envivo { box-shadow: 6px 6px 0 var(--verde); border-color: var(--verde-texto); }
+.estado { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--tenue); }
+.envivo .estado { color: var(--verde-texto); }
+.cuenta { color: var(--azul); font-variant-numeric: tabular-nums; }
+.descripcion { font-size: 14px; line-height: 1.7; }
+.anfitrion { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tenue); }
+.anfitrion a { color: var(--tinta); font-weight: 700; text-decoration: none; }

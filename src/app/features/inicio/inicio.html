@@ -1,24 +1,27 @@
 <div class="lienzo">
   <section class="texto">
-    <h1>el código se arregla mejor <span class="resaltado">entre varios.</span></h1>
+    <h1>De <code class="hola">hola mundo</code> <span class="resaltado">a tu primer empleo.</span></h1>
     <p class="bajada">
-      Publicas un problema. Otros estudiantes proponen cambios sobre tu código. Tú eliges cuál
-      aceptar, y cada mejora queda en el portafolio de quien la hizo.
+      Publicas tu código, otros estudiantes proponen mejoras y cada aporte aceptado queda en tu
+      perfil profesional. Las empresas encuentran talento por lo que construye, no por lo que dice.
     </p>
     <div class="acciones">
       @if (auth.autenticado()) {
-        <a class="btn btn-primario" [routerLink]="auth.rutaInicio()">ir a mi espacio →</a>
+        <a class="btn btn-primario" [routerLink]="auth.rutaInicio()">Ir a mi espacio →</a>
       } @else {
-        <a class="btn btn-primario" routerLink="/registro">crear cuenta</a>
-        <a class="btn btn-secundario" routerLink="/registro" [queryParams]="{ rol: 'empresa' }">soy empresa</a>
+        <a class="btn btn-primario" routerLink="/registro">Crear cuenta</a>
+        <a class="btn btn-secundario" routerLink="/login">Iniciar sesión</a>
       }
     </div>
-    <p class="pista">→ pruébalo: espera las propuestas y acepta una.</p>
+    @if (!auth.autenticado()) {
+      <a class="empresas" routerLink="/registro" [queryParams]="{ rol: 'empresa' }">¿Buscas talento? Crea una cuenta de empresa →</a>
+    }
+    <p class="pista">→ Pruébalo: espera las dos propuestas y acepta una.</p>
   </section>
 
   <section class="editor" aria-label="Demostración: dos estudiantes proponen mejoras a un código">
     <div class="barra">
-      <span>main.go · publicado por <span class="laura">&#64;laura_dev</span></span>
+      <span>Publicado por <span class="laura">&#64;laura_dev</span> · main.go</span>
       <span class="estado {{ estado().clase }}" aria-live="polite">{{ estado().texto }}</span>
     </div>
 
@@ -39,8 +42,8 @@
 
     @if (decidiendo()) {
       <div class="decision">
-        <button type="button" class="opcion-m" (click)="elegir('m')">aceptar &#64;mateo.go</button>
-        <button type="button" class="opcion-a" (click)="elegir('a')">aceptar &#64;andres.sql</button>
+        <button type="button" class="opcion-m" (click)="elegir('m')">Aceptar &#64;mateo.go</button>
+        <button type="button" class="opcion-a" (click)="elegir('a')">Aceptar &#64;andres.sql</button>
       </div>
     }
 
@@ -49,11 +52,11 @@
         <span class="tenue">$ go run main.go</span>
         <span>hola</span>
         @if (e === 'a') {
-          <span class="veredicto ok">correcto: main ahora espera a la goroutine. &#64;andres.sql suma esta mejora a su portafolio y entra a tu red.</span>
+          <span class="veredicto ok">Correcto: main ahora espera a la goroutine. &#64;andres.sql suma esta mejora a su perfil y entra a tu red.</span>
         } @else {
-          <span class="veredicto parche">funciona, pero dormir un segundo es un parche: si la tarea tarda más, el mensaje se pierde. Otros compañeros sugieren WaitGroup.</span>
+          <span class="veredicto parche">Funciona, pero dormir un segundo es un parche: si la tarea tarda más, el mensaje se pierde. Otros compañeros sugieren WaitGroup.</span>
         }
-        <button type="button" class="repetir" (click)="repetir()">↺ repetir</button>
+        <button type="button" class="repetir" (click)="repetir()">↺ Repetir</button>
       </div>
     }
   </section>

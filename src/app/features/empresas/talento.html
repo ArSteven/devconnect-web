@@ -1,0 +1,92 @@
+<section class="contenedor">
+  @if (suscripcion() === null) {
+    <div class="aviso">
+      <span>Plan gratuito: buscas, guardas y ves perfiles. Para ver el correo y publicar retos necesitas la suscripción.</span>
+      <a class="btn btn-primario btn-pequeno" routerLink="/planes">Ver planes →</a>
+    </div>
+  }
+
+  <h1>Busca por lo que construyen,<br>no por lo que <span class="resaltado">dicen.</span></h1>
+
+  <div class="card filtros">
+    <div class="grupo">
+      <span class="titulo-grupo" id="t-lenguajes">Tecnologías (puedes elegir varias)</span>
+      <div class="chips" role="group" aria-labelledby="t-lenguajes">
+        @for (l of lenguajes; track l.valor) {
+          <button type="button" class="chip-tec" [class.on]="filtro().lenguajes.includes(l.valor)" [attr.aria-pressed]="filtro().lenguajes.includes(l.valor)" (click)="alternarLenguaje(l.valor)">
+            <app-tecnologia [nombre]="l.valor" [tamano]="18" />
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="selects">
+      <label class="campo">Ciudad
+        <select [value]="filtro().ciudad" (change)="cambiar({ ciudad: $any($event.target).value })">
+          <option value="">Cualquier ciudad</option>
+          <option [value]="AMB">Bucaramanga y área metropolitana</option>
+          @for (c of otrasCiudades(); track c.valor) { <option [value]="c.valor">{{ c.valor }} ({{ c.total }})</option> }
+        </select>
+      </label>
+      <label class="campo">Institución
+        <select [value]="filtro().institucion" (change)="cambiar({ institucion: $any($event.target).value })">
+          <option value="">Todas</option>
+          @for (o of catalogos()?.instituciones ?? []; track o.valor) { <option [value]="o.valor">{{ o.valor }} ({{ o.total }})</option> }
+        </select>
+      </label>
+      <label class="campo">Nivel
+        <select [value]="filtro().nivel" (change)="cambiar({ nivel: $any($event.target).value })">
+          <option value="">Cualquier nivel</option>
+          @for (n of niveles; track n.valor) { <option [value]="n.valor">{{ n.etiqueta }}</option> }
+        </select>
+      </label>
+      <label class="campo">Disponibilidad
+        <select [value]="filtro().disponibilidad" (change)="cambiar({ disponibilidad: $any($event.target).value })">
+          <option value="">Cualquiera</option>
+          @for (d of disponibilidades; track d.valor) { <option [value]="d.valor">{{ d.etiqueta }}</option> }
+        </select>
+      </label>
+      <label class="campo">Modalidad
+        <select [value]="filtro().modalidad" (change)="cambiar({ modalidad: $any($event.target).value })">
+          <option value="">Cualquiera</option>
+          @for (m of modalidades; track m.valor) { <option [value]="m.valor">{{ m.etiqueta }}</option> }
+        </select>
+      </label>
+    </div>
+
+    <div class="pie-filtros">
+      <label class="casilla">
+        <input type="checkbox" [checked]="filtro().conMejoras" (change)="cambiar({ conMejoras: $any($event.target).checked })">
+        Solo con mejoras aceptadas
+      </label>
+      @if (activos()) {
+        <button type="button" class="limpiar" (click)="limpiar()">Limpiar filtros ({{ activos() }})</button>
+      }
+    </div>
+  </div>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  <p class="conteo" aria-live="polite">
+    @if (cargando()) { Buscando… } @else {
+      <strong>{{ resultados().length }}</strong> {{ resultados().length === 1 ? 'perfil encontrado' : 'perfiles encontrados' }}
+      <span class="tenue">· Primero quienes tienen más mejoras aceptadas y más constancia.</span>
+    }
+  </p>
+
+  @if (cargando() && !resultados().length) {
+    <app-cargando texto="Buscando perfiles…" />
+  } @else {
+    <div class="grilla" [class.atenuada]="cargando()">
+      @for (t of resultados(); track t.id; let i = $index) {
+        <app-tarjeta-candidato class="aparecer" [style.--i]="i" [t]="t" [guardando]="guardando() === t.id" (alternarGuardado)="alternarGuardado(t)" />
+      } @empty {
+        <div class="card vacio">
+          <strong>Ningún estudiante coincide con estos filtros.</strong>
+          <span>Prueba quitando alguno: el nivel y la institución suelen ser los más restrictivos.</span>
+          <button class="btn btn-secundario btn-pequeno" type="button" (click)="limpiar()">Limpiar filtros</button>
+        </div>
+      }
+    </div>
+  }
+</section>

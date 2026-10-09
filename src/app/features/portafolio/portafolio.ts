@@ -1,9 +1,16 @@
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Api } from '../../core/api';
-import { AuthService } from '../../core/auth/auth.service';
-import { DISPONIBILIDADES, EventoHistorial, MODALIDADES, Portafolio as DatosPortafolio, hace, nombreLenguaje } from '../../core/modelos';
 import { mensajeDeError } from '../../core/api-error';
+import { AuthService } from '../../core/auth/auth.service';
+import { Avisos } from '../../core/avisos';
+import {
+  EventoHistorial, Portafolio as DatosPortafolio, etiquetaDisponibilidad, etiquetaModalidad, hace, nivelAcademico, nombreLenguaje,
+} from '../../core/modelos';
+import { tecnologia } from '../../core/tecnologias';
+import { Avatar } from '../../shared/avatar';
+import { Cargando } from '../../shared/cargando';
+import { Tecnologia } from '../../shared/tecnologia';
 import { EditarPerfil } from './editar-perfil';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -15,20 +22,24 @@ interface Aptitud {
 }
 
 /**
- * Portafolio con estructura de hoja de vida: primero la persona (quién es, qué estudia,
+ * Perfil con estructura de hoja de vida: primero la persona (quién es, qué estudia,
  * disponibilidad, contacto) y después la evidencia de DevConnect que respalda lo que dice.
  */
 @Component({
   selector: 'app-portafolio',
-  imports: [RouterLink, EditarPerfil],
+  imports: [RouterLink, EditarPerfil, Avatar, Tecnologia, Cargando],
   templateUrl: './portafolio.html',
   styleUrl: './portafolio.css',
 })
 export class Portafolio {
   private api = inject(Api);
   private auth = inject(AuthService);
+  private avisos = inject(Avisos);
+  private router = inject(Router);
 
   readonly id = input.required<string>();
+  /** /portafolio/:id?editar=1 abre directamente el formulario (desde el menú del avatar). */
+  readonly editar = input<string>();
 
   protected hace = hace;
   protected nombreLenguaje = nombreLenguaje;
@@ -36,12 +47,11 @@ export class Portafolio {
   protected error = signal('');
   protected editando = signal(false);
   protected verTodo = signal(false);
+  protected guardando = signal(false);
 
   protected esPropio = computed(() => this.auth.usuario()?.id === this.id());
-
-  protected iniciales = computed(() =>
-    (this.datos()?.perfil.nombre ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join(''),
-  );
+  protected esEmpresa = computed(() => this.auth.usuario()?.rol === 'empresa');
+  protected asunto = encodeURIComponent('Oportunidad laboral: vimos tu perfil en DevConnect');
 
   /** Si no escribió un titular, se arma uno con su formación. */
   protected titular = computed(() => {
@@ -52,18 +62,18 @@ export class Portafolio {
     return estudio ? `Estudiante de ${estudio}` : '';
   });
 
-  /** Línea bajo el nombre: ciudad · edad · modalidad. */
+  /** Lo que un reclutador busca primero, en una línea: edad · ciudad · institución · semestre. */
   protected datosBasicos = computed(() => {
     const p = this.datos()?.perfil;
     if (!p) return [];
-    const modalidad = MODALIDADES.find(m => m.valor === p.modalidad)?.etiqueta;
-    return [p.ciudad, p.edad !== null ? `${p.edad} años` : '', modalidad ? `Trabajo ${modalidad.toLowerCase()}` : ''].filter(Boolean);
+    return [p.edad !== null ? `${p.edad} años` : '', p.ciudad, p.institucion, nivelAcademico(p)].filter(Boolean);
   });
 
   protected disponibilidad = computed(() => {
     const p = this.datos()?.perfil;
-    return DISPONIBILIDADES.find(d => d.valor === p?.disponibilidad) ?? null;
+    return p?.disponibilidad ? { valor: p.disponibilidad, etiqueta: etiquetaDisponibilidad(p.disponibilidad) } : null;
   });
+  protected modalidad = computed(() => etiquetaModalidad(this.datos()?.perfil.modalidad ?? ''));
 
   protected formacion = computed(() => {
     const p = this.datos()?.perfil;
@@ -78,22 +88,30 @@ export class Portafolio {
   protected aptitudes = computed<Aptitud[]>(() => {
     const d = this.datos();
     if (!d) return [];
-    const evidencia = new Map(d.habilidades.map(h => [h.lenguaje.toLowerCase(), h]));
-    const nombres = new Set([...d.habilidades.map(h => h.lenguaje.toLowerCase()), ...d.perfil.stack.map(s => s.toLowerCase())]);
-    const lista: Aptitud[] = [...nombres].map(n => {
-      const h = evidencia.get(n);
-      const partes = h
-        ? [h.aportes ? `${h.aportes} ${h.aportes === 1 ? 'mejora aceptada' : 'mejoras aceptadas'}` : '',
-           h.publicaciones ? `${h.publicaciones} ${h.publicaciones === 1 ? 'publicación' : 'publicaciones'}` : ''].filter(Boolean)
-        : [];
-      return { nombre: nombreLenguaje(n), verificada: !!h, detalle: partes.join(' · ') };
-    });
-    return lista.sort((a, b) => Number(b.verificada) - Number(a.verificada));
+    const porNombre = new Map<string, Aptitud>();
+    for (const h of d.habilidades) {
+      const partes = [
+        h.aportes ? `${h.aportes} ${h.aportes === 1 ? 'mejora aceptada' : 'mejoras aceptadas'}` : '',
+        h.publicaciones ? `${h.publicaciones} ${h.publicaciones === 1 ? 'publicación' : 'publicaciones'}` : '',
+      ].filter(Boolean);
+      porNombre.set(tecnologia(h.lenguaje).nombre, { nombre: h.lenguaje, verificada: true, detalle: partes.join(' · ') });
+    }
+    for (const s of d.perfil.stack) {
+      const nombre = tecnologia(s).nombre;
+      if (!porNombre.has(nombre)) porNombre.set(nombre, { nombre: s, verificada: false, detalle: '' });
+    }
+    return [...porNombre.values()].sort((a, b) => Number(b.verificada) - Number(a.verificada));
   });
 
   protected experiencia = computed(() =>
     (this.datos()?.perfil.experiencia ?? []).map(e => ({ ...e, periodo: `${this.mes(e.inicio)} – ${e.fin ? this.mes(e.fin) : 'actualidad'}` })),
   );
+
+  /** Para visitantes se ocultan las secciones vacías: un perfil nuevo no se ve "en ceros". */
+  protected hayEvidencia = computed(() => {
+    const t = this.datos()?.totales;
+    return !!t && t.publicaciones + t.propuestas_hechas + t.sesiones + t.mejoras_recibidas > 0;
+  });
 
   /** Mapa de actividad de 6 meses con etiquetas de mes por columna. */
   protected mapa = computed(() => {
@@ -110,7 +128,8 @@ export class Portafolio {
     let mesAnterior = -1;
     for (const dia = new Date(inicio); dia <= hoy; dia.setDate(dia.getDate() + 1)) {
       if (dia.getDay() === 0) {
-        meses.push(dia.getMonth() !== mesAnterior ? MESES[dia.getMonth()] : '');
+        const m = MESES[dia.getMonth()];
+        meses.push(dia.getMonth() !== mesAnterior ? m.charAt(0).toUpperCase() + m.slice(1) : '');
         mesAnterior = dia.getMonth();
       }
       const clave = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
@@ -134,25 +153,61 @@ export class Portafolio {
       const id = this.id();
       untracked(() => this.cargar(id));
     });
+    // El formulario lo abre la URL (?editar=1): así funciona igual desde el menú del avatar y desde aquí.
+    effect(() => {
+      const editar = !!this.editar() && this.esPropio();
+      untracked(() => this.editando.set(editar));
+    });
   }
 
   textoEvento(e: EventoHistorial): string {
     switch (e.tipo) {
       case 'publicacion': return `Publicó «${e.titulo}»`;
-      case 'aporte': return `Mejoró el código de @${e.con_quien} en «${e.titulo}»`;
-      case 'recibida': return `Recibió una mejora de @${e.con_quien} en «${e.titulo}»`;
+      case 'aporte': return `Mejoró el código de ${e.con_quien} en «${e.titulo}»`;
+      case 'reto': return `Resolvió el reto de ${e.con_quien}: «${e.titulo}»`;
+      case 'recibida': return `Recibió una mejora de ${e.con_quien} en «${e.titulo}»`;
       default: return `Dictó la sesión «${e.titulo}»`;
     }
   }
 
-  alGuardar(): void {
-    this.editando.set(false);
+  abrirEdicion(): void {
+    this.router.navigate([], { queryParams: { editar: 1 } });
+  }
+
+  cerrarEdicion(): void {
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
+  }
+
+  alGuardar(github: string): void {
+    this.auth.actualizarUsuario({ github_url: github });
+    this.avisos.exito('Perfil actualizado.');
+    this.cerrarEdicion();
     this.cargar(this.id());
+  }
+
+  alternarGuardado(): void {
+    const d = this.datos();
+    if (!d) return;
+    this.guardando.set(true);
+    const peticion = d.guardado ? this.api.quitarCandidato(this.id()) : this.api.guardarCandidato(this.id());
+    peticion.subscribe({
+      next: () => {
+        this.datos.set({ ...d, guardado: !d.guardado });
+        this.guardando.set(false);
+        this.avisos.exito(d.guardado ? 'Salió de tus candidatos.' : 'Guardado en Mis candidatos.');
+      },
+      error: err => {
+        this.guardando.set(false);
+        this.avisos.error(mensajeDeError(err));
+      },
+    });
   }
 
   private mes(aaaamm: string): string {
     const [a, m] = aaaamm.split('-').map(Number);
-    return m ? `${MESES[m - 1]} ${a}` : aaaamm;
+    if (!m) return aaaamm;
+    const nombre = MESES[m - 1];
+    return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${a}`;
   }
 
   private cargar(id: string): void {

@@ -1,16 +1,19 @@
 <section class="contenedor">
   @if (error()) {
-    <p class="error" role="alert">{{ error() }}</p>
+    <div class="card vacio" role="alert">
+      <strong>No pudimos abrir este perfil.</strong>
+      <span>{{ error() }}</span>
+    </div>
   }
 
   @if (datos(); as d) {
     @if (editando()) {
-      <app-editar-perfil [perfil]="d.perfil" (guardado)="alGuardar()" (cancelado)="editando.set(false)" />
+      <app-editar-perfil [perfil]="d.perfil" (guardado)="alGuardar($event)" (cancelado)="cerrarEdicion()" />
     } @else {
 
       <!-- 1. Quién es -->
-      <header class="card encabezado">
-        <div class="avatar" aria-hidden="true">{{ iniciales() }}</div>
+      <header class="card encabezado aparecer">
+        <app-avatar [nombre]="d.perfil.nombre" [github]="d.perfil.github_url" [tamano]="104" />
         <div class="identidad">
           <h1>{{ d.perfil.nombre }}</h1>
           @if (titular()) {
@@ -19,21 +22,80 @@
           @if (datosBasicos().length) {
             <p class="basicos">{{ datosBasicos().join(' · ') }}</p>
           }
-          @if (disponibilidad(); as disp) {
-            <span class="disponible" [class.no]="disp.valor === 'no_disponible'">{{ disp.etiqueta }}</span>
+          <div class="etiquetas">
+            @if (disponibilidad(); as disp) {
+              <span class="disponible" [class.no]="disp.valor === 'no_disponible'">{{ disp.etiqueta }}</span>
+            }
+            @if (modalidad()) { <span class="chip">{{ modalidad() }}</span> }
+            @if (d.totales.retos_resueltos) { <span class="chip chip-reto">{{ d.totales.retos_resueltos }} {{ d.totales.retos_resueltos === 1 ? 'reto resuelto' : 'retos resueltos' }}</span> }
+          </div>
+        </div>
+        <div class="acciones-encabezado">
+          @if (esPropio()) {
+            <button class="btn btn-secundario" type="button" (click)="abrirEdicion()">Editar perfil</button>
+          } @else if (esEmpresa()) {
+            <button class="btn" [class.btn-secundario]="!d.guardado" [class.guardado]="d.guardado" type="button"
+                    [disabled]="guardando()" [attr.aria-pressed]="d.guardado" (click)="alternarGuardado()">
+              {{ d.guardado ? '✓ En mis candidatos' : 'Guardar candidato' }}
+            </button>
           }
         </div>
-        @if (esPropio()) {
-          <button class="btn btn-secundario editar" type="button" (click)="editando.set(true)">Editar perfil</button>
-        }
       </header>
 
       <div class="cuerpo">
         <div class="principal">
+          @if (esPropio() && (!d.perfil.biografia || !formacion() || !d.perfil.titular || !d.perfil.github_url)) {
+            <div class="completar">
+              <strong>Completa tu perfil</strong>
+              <span>Las empresas buscan primero tu formación, tu disponibilidad y una presentación corta. Con tu GitHub, tu foto aparece en todo DevConnect.</span>
+              <button class="btn btn-primario btn-pequeno" type="button" (click)="abrirEdicion()">Completar ahora</button>
+            </div>
+          }
+
           @if (d.perfil.biografia) {
             <section class="seccion">
               <h2>Acerca de</h2>
               <p class="texto">{{ d.perfil.biografia }}</p>
+            </section>
+          }
+
+          <!-- 2. Evidencia que respalda lo anterior -->
+          @if (hayEvidencia() || esPropio()) {
+            <section class="seccion">
+              <h2>Evidencia en DevConnect</h2>
+              <div class="senales">
+                <div class="senal" [class.destacada]="d.tasa_aceptacion !== null">
+                  <span class="etiqueta">Tasa de aceptación</span>
+                  <strong [class.sin-dato]="d.tasa_aceptacion === null">{{ d.tasa_aceptacion !== null ? d.tasa_aceptacion + ' %' : 'Sin datos' }}</strong>
+                  <span class="tenue">
+                    {{ d.tasa_aceptacion !== null ? d.totales.mejoras_aportadas + ' de ' + d.totales.propuestas_hechas + ' propuestas aceptadas' : 'Aún no ha propuesto mejoras' }}
+                  </span>
+                </div>
+                <div class="senal"><span class="etiqueta">Mejoras aceptadas</span><strong>{{ d.totales.mejoras_aportadas }}</strong><span class="tenue">En código de otros</span></div>
+                <div class="senal"><span class="etiqueta">Colaboradores</span><strong>{{ d.totales.colaboradores }}</strong><span class="tenue">Personas distintas</span></div>
+                <div class="senal"><span class="etiqueta">Sesiones dictadas</span><strong>{{ d.totales.sesiones }}</strong><span class="tenue">Explicando en vivo</span></div>
+              </div>
+            </section>
+          }
+
+          @if (d.destacados.length) {
+            <section class="seccion">
+              <h2>Mejores aportes</h2>
+              <div class="destacados">
+                @for (x of d.destacados; track x.propuesta_id) {
+                  <a class="aporte" [class.reto]="x.es_reto" [routerLink]="['/publicacion', x.publicacion_id]">
+                    <div class="meta">
+                      <app-tecnologia [nombre]="x.lenguaje" [tamano]="16" />
+                      <span class="tenue">{{ hace(x.fecha) }}</span>
+                    </div>
+                    @if (x.es_reto) { <span class="chip chip-reto">Resolvió el reto de {{ x.autor_original }}</span> }
+                    <strong>«{{ x.titulo }}»</strong>
+                    @if (!x.es_reto) { <span class="tenue">Código de {{ x.autor_original }}</span> }
+                    <p class="explicacion">{{ x.explicacion }}</p>
+                    <span class="ver">Ver la solución →</span>
+                  </a>
+                }
+              </div>
             </section>
           }
 
@@ -62,87 +124,47 @@
             </section>
           }
 
-          @if (esPropio() && (!d.perfil.biografia || !formacion() || !d.perfil.titular)) {
-            <div class="completar">
-              <strong>Completa tu perfil</strong>
-              <span>Las empresas buscan primero tu formación, tu disponibilidad y una presentación corta.</span>
-              <button class="btn btn-primario" type="button" (click)="editando.set(true)">Completar ahora</button>
-            </div>
-          }
-
-          <!-- 2. Evidencia que respalda lo anterior -->
-          <section class="seccion">
-            <h2>Evidencia en DevConnect</h2>
-            <div class="senales">
-              <div class="senal" [class.destacada]="d.tasa_aceptacion !== null">
-                <span class="etiqueta">Tasa de aceptación</span>
-                <strong>{{ d.tasa_aceptacion !== null ? d.tasa_aceptacion + ' %' : 'Sin datos' }}</strong>
-                <span class="tenue">
-                  {{ d.tasa_aceptacion !== null ? d.totales.mejoras_aportadas + ' de ' + d.totales.propuestas_hechas + ' propuestas aceptadas' : 'Aún no ha propuesto mejoras' }}
-                </span>
-              </div>
-              <div class="senal"><span class="etiqueta">Mejoras aceptadas</span><strong>{{ d.totales.mejoras_aportadas }}</strong><span class="tenue">en código de otros</span></div>
-              <div class="senal"><span class="etiqueta">Colaboradores</span><strong>{{ d.totales.colaboradores }}</strong><span class="tenue">personas distintas</span></div>
-              <div class="senal"><span class="etiqueta">Sesiones dictadas</span><strong>{{ d.totales.sesiones }}</strong><span class="tenue">explicando en vivo</span></div>
-            </div>
-          </section>
-
-          @if (d.destacados.length) {
+          @if (mapa().total > 0 || esPropio()) {
             <section class="seccion">
-              <h2>Mejores aportes</h2>
-              <div class="destacados">
-                @for (x of d.destacados; track x.propuesta_id) {
-                  <a class="aporte" [routerLink]="['/publicacion', x.publicacion_id]">
-                    <div class="meta"><span class="chip">{{ nombreLenguaje(x.lenguaje) }}</span><span class="tenue">{{ hace(x.fecha) }}</span></div>
-                    <strong>«{{ x.titulo }}»</strong>
-                    <span class="tenue">Código de &#64;{{ x.autor_original }}</span>
-                    <p class="explicacion">{{ x.explicacion }}</p>
-                    <span class="ver">Ver la solución →</span>
-                  </a>
-                }
+              <h2>Actividad</h2>
+              <p class="tenue">{{ mapa().total }} {{ mapa().total === 1 ? 'contribución' : 'contribuciones' }} en los últimos 6 meses</p>
+              <div class="mapa-envoltura">
+                <div class="dias-semana" aria-hidden="true"><span></span><span>Lun</span><span></span><span>Mié</span><span></span><span>Vie</span><span></span></div>
+                <div class="mapa-columna">
+                  <div class="meses" aria-hidden="true">
+                    @for (m of mapa().meses; track $index) { <span>{{ m }}</span> }
+                  </div>
+                  <div class="mapa" role="img" [attr.aria-label]="mapa().total + ' contribuciones en los últimos 6 meses'">
+                    @for (c of mapa().celdas; track c.clave) { <span class="dia n{{ c.nivel }}" [title]="c.etiqueta"></span> }
+                  </div>
+                </div>
               </div>
+              <div class="leyenda-mapa">
+                <span>Menos</span><span class="dia n0"></span><span class="dia n1"></span><span class="dia n2"></span><span class="dia n3"></span><span class="dia n4"></span><span>Más</span>
+              </div>
+
+              @if (d.historial.length) {
+                <ul class="reciente">
+                  @for (e of recientes(); track e.id + e.tipo) {
+                    <li>
+                      <span class="punto punto-{{ e.tipo }}" aria-hidden="true"></span>
+                      @if (e.publicacion_id) {
+                        <a [routerLink]="['/publicacion', e.publicacion_id]">{{ textoEvento(e) }}</a>
+                      } @else {
+                        <span>{{ textoEvento(e) }}</span>
+                      }
+                      <span class="fecha">{{ hace(e.fecha) }}</span>
+                    </li>
+                  }
+                </ul>
+                @if (d.historial.length > 5) {
+                  <button class="enlace" type="button" (click)="verTodo.set(!verTodo())">
+                    {{ verTodo() ? 'Ver menos' : 'Ver toda la actividad (' + d.historial.length + ')' }}
+                  </button>
+                }
+              }
             </section>
           }
-
-          <section class="seccion">
-            <h2>Actividad</h2>
-            <p class="tenue">{{ mapa().total }} {{ mapa().total === 1 ? 'contribución' : 'contribuciones' }} en los últimos 6 meses</p>
-            <div class="mapa-envoltura">
-              <div class="dias-semana" aria-hidden="true"><span></span><span>Lun</span><span></span><span>Mié</span><span></span><span>Vie</span><span></span></div>
-              <div class="mapa-columna">
-                <div class="meses" aria-hidden="true">
-                  @for (m of mapa().meses; track $index) { <span>{{ m }}</span> }
-                </div>
-                <div class="mapa" role="img" [attr.aria-label]="mapa().total + ' contribuciones en los últimos 6 meses'">
-                  @for (c of mapa().celdas; track c.clave) { <span class="dia n{{ c.nivel }}" [title]="c.etiqueta"></span> }
-                </div>
-              </div>
-            </div>
-            <div class="leyenda-mapa">
-              <span>Menos</span><span class="dia n0"></span><span class="dia n1"></span><span class="dia n2"></span><span class="dia n3"></span><span class="dia n4"></span><span>Más</span>
-            </div>
-
-            @if (d.historial.length) {
-              <ul class="reciente">
-                @for (e of recientes(); track e.id + e.tipo) {
-                  <li>
-                    <span class="punto {{ e.tipo }}" aria-hidden="true"></span>
-                    @if (e.publicacion_id) {
-                      <a [routerLink]="['/publicacion', e.publicacion_id]">{{ textoEvento(e) }}</a>
-                    } @else {
-                      <span>{{ textoEvento(e) }}</span>
-                    }
-                    <span class="fecha">{{ hace(e.fecha) }}</span>
-                  </li>
-                }
-              </ul>
-              @if (d.historial.length > 5) {
-                <button class="enlace" type="button" (click)="verTodo.set(!verTodo())">
-                  {{ verTodo() ? 'Ver menos' : 'Ver toda la actividad (' + d.historial.length + ')' }}
-                </button>
-              }
-            }
-          </section>
         </div>
 
         <!-- Columna lateral: contacto y datos de consulta rápida -->
@@ -151,7 +173,12 @@
             <div class="caja contacto">
               <h3>Contacto</h3>
               <span class="correo">{{ d.contacto.correo }}</span>
-              <a class="btn btn-primario" href="mailto:{{ d.contacto.correo }}">Escribir correo</a>
+              <a class="btn btn-primario" [href]="'mailto:' + d.contacto.correo + '?subject=' + asunto">Escribir correo</a>
+            </div>
+          } @else if (d.contacto_oculto) {
+            <div class="caja contacto bloqueado">
+              <h3>Contacto</h3>
+              <p>Este estudiante prefirió no compartir su correo por ahora.</p>
             </div>
           } @else if (d.contacto_bloqueado) {
             <div class="caja contacto bloqueado">
@@ -167,9 +194,9 @@
               <ul class="aptitudes">
                 @for (a of aptitudes(); track a.nombre) {
                   <li>
-                    <span class="nombre-aptitud">{{ a.nombre }}</span>
+                    <app-tecnologia [nombre]="a.nombre" [tamano]="22" />
                     @if (a.verificada) {
-                      <span class="verificada" title="Respaldado por actividad en DevConnect">✓ Verificada</span>
+                      <span class="verificada" title="Respaldada por actividad en DevConnect">✓ Verificada</span>
                       <span class="tenue">{{ a.detalle }}</span>
                     } @else {
                       <span class="tenue">Declarada</span>
@@ -203,6 +230,6 @@
       </div>
     }
   } @else if (!error()) {
-    <p class="tenue">Cargando…</p>
+    <app-cargando texto="Cargando el perfil…" />
   }
 </section>

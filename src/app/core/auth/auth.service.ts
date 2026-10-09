@@ -10,6 +10,8 @@ export interface Usuario {
   nombre: string;
   correo: string;
   rol: Rol;
+  github_url: string; // estudiantes: de aquí sale la foto del avatar
+  razon_social?: string; // empresas
 }
 
 export interface RegistroDatos {
@@ -18,6 +20,7 @@ export interface RegistroDatos {
   contrasena: string;
   rol: 'estudiante' | 'empresa';
   razon_social?: string;
+  acepta_terminos: boolean;
 }
 
 interface RespuestaSesion {
@@ -80,6 +83,11 @@ export class AuthService {
   /** Se ejecuta al abrir la app: si hay cookie válida, recupera la sesión sin pedir login. */
   restaurar(): Promise<void> {
     return firstValueFrom(this.refrescar()).then(() => undefined);
+  }
+
+  /** Tras editar el perfil, el encabezado muestra la foto nueva sin volver a iniciar sesión. */
+  actualizarUsuario(cambios: Partial<Pick<Usuario, 'github_url'>>): void {
+    this._usuario.update(u => (u ? { ...u, ...cambios } : u));
   }
 
   logout(): void {

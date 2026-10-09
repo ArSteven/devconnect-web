@@ -1,118 +1,53 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../../core/api';
-import { AuthService } from '../../core/auth/auth.service';
-import { SesionVivo } from '../../core/modelos';
 import { mensajeDeError } from '../../core/api-error';
+import { AuthService } from '../../core/auth/auth.service';
+import { Avisos } from '../../core/avisos';
+import { urlSala } from '../../core/jitsi';
+import { SesionVivo } from '../../core/modelos';
+import { Reloj, cuentaRegresiva, fechaCorta } from '../../core/reloj';
+import { Avatar } from '../../shared/avatar';
+import { Cargando } from '../../shared/cargando';
 
-/** Las salas se abren en meet.jit.si en otra pestaña: embebidas, Jitsi las corta a los 5 minutos. */
-const URL_JITSI = 'https://meet.jit.si/';
+/** "2026-10-06T15:30" en hora local, el formato que espera <input type="datetime-local">. */
+function paraInput(fecha: Date): string {
+  const local = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
 
 @Component({
   selector: 'app-sesiones',
-  imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <section class="contenedor">
-      <div class="cabecera">
-        <h1>Sesiones en vivo</h1>
-        @if (esEstudiante() && !creando()) {
-          <button class="btn btn-primario" type="button" (click)="creando.set(true)">+ Programar sesión</button>
-        }
-      </div>
-      <p class="bajada">Un estudiante explica un tema en vivo y los demás preguntan. Dictar sesiones suma a tu portafolio.</p>
-
-      @if (creando()) {
-        <form class="card formulario" [formGroup]="form" (ngSubmit)="crear()" novalidate>
-          <h2>Programar sesión</h2>
-          <label class="campo">Título<input type="text" formControlName="titulo" maxlength="150" placeholder="Ej.: Punteros en Go sin miedo"></label>
-          <label class="campo">Fecha y hora<input type="datetime-local" formControlName="inicia_en"></label>
-          <label class="campo">Descripción (opcional)<textarea formControlName="descripcion" rows="3" maxlength="1000"></textarea></label>
-          @if (errorForm()) {
-            <p class="error" role="alert">{{ errorForm() }}</p>
-          }
-          <div class="acciones">
-            <button class="btn btn-primario" type="submit" [disabled]="enviando()">Programar</button>
-            <button class="btn btn-secundario" type="button" (click)="creando.set(false)">Cancelar</button>
-          </div>
-        </form>
-      }
-
-      @if (error()) {
-        <p class="error" role="alert">{{ error() }}</p>
-      }
-
-      <div class="lista">
-        @for (s of sesiones(); track s.id) {
-          <article class="card sesion" [class.envivo]="s.estado === 'en_vivo'">
-            <div class="estado">
-              @if (s.estado === 'en_vivo') {
-                <span class="punto"></span> EN VIVO
-              } @else {
-                {{ fecha(s.inicia_en) }}
-              }
-            </div>
-            <h3>{{ s.titulo }}</h3>
-            @if (s.descripcion) {
-              <p class="descripcion">{{ s.descripcion }}</p>
-            }
-            <p class="anfitrion">Dicta <a [routerLink]="['/portafolio', s.anfitrion_id]">&#64;{{ s.anfitrion_nombre }}</a></p>
-
-            <div class="acciones">
-              @if (s.estado === 'en_vivo') {
-                <a class="btn btn-primario" [href]="urlSala(s)" target="_blank" rel="noopener">Entrar a la sala ↗</a>
-              }
-              @if (esAnfitrion(s)) {
-                @if (s.estado === 'programada') {
-                  <button class="btn btn-primario" type="button" (click)="cambiar(s, 'en_vivo')">Iniciar ahora</button>
-                  <button class="btn btn-secundario" type="button" (click)="cambiar(s, 'finalizada')">Cancelar</button>
-                } @else {
-                  <button class="btn btn-secundario" type="button" (click)="cambiar(s, 'finalizada')">Finalizar</button>
-                }
-              }
-            </div>
-          </article>
-        } @empty {
-          @if (!cargando()) {
-            <div class="card vacio">No hay sesiones programadas. {{ esEstudiante() ? 'Programa la primera.' : '' }}</div>
-          }
-        }
-      </div>
-    </section>
-  `,
-  styles: `
-    .contenedor { display: flex; flex-direction: column; gap: 22px; max-width: 900px; }
-    .cabecera { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; }
-    h1 { font-size: clamp(30px, 4.5vw, 44px); line-height: 1.12; }
-    h2 { font-size: 22px; } h3 { font-size: 20px; line-height: 1.3; }
-    .bajada { font-size: 15px; line-height: 1.7; color: #3D3B36; }
-    .formulario { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
-    .acciones { display: flex; flex-wrap: wrap; gap: 10px; }
-    .lista { display: flex; flex-direction: column; gap: 18px; }
-    .sesion { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
-    .sesion.envivo { box-shadow: 6px 6px 0 var(--verde); }
-    .estado { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--tenue); }
-    .envivo .estado { color: var(--verde-texto); }
-    .punto { width: 10px; height: 10px; border-radius: 50%; background: var(--verde); animation: parpadeo 1.4s steps(1) infinite; }
-    .descripcion { font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
-    .anfitrion { font-size: 13px; color: var(--tenue); }
-    .anfitrion a { color: var(--tinta); font-weight: 700; text-decoration: none; }
-    .vacio { padding: 24px; font-size: 14px; color: var(--tenue); }
-  `,
+  imports: [ReactiveFormsModule, RouterLink, NgTemplateOutlet, Avatar, Cargando],
+  templateUrl: './sesiones.html',
+  styleUrl: './sesiones.css',
 })
-export class Sesiones {
+export class Sesiones implements OnInit {
   private api = inject(Api);
   private auth = inject(AuthService);
+  private avisos = inject(Avisos);
+  private reloj = inject(Reloj);
   private fb = inject(FormBuilder);
 
+  /** /sesiones?programar=1 abre el formulario directamente (viene del feed). */
+  readonly programar = input<string>();
+
+  protected fechaCorta = fechaCorta;
   protected sesiones = signal<SesionVivo[]>([]);
   protected cargando = signal(true);
   protected error = signal('');
   protected creando = signal(false);
   protected enviando = signal(false);
+  protected cambiando = signal<string | null>(null);
   protected errorForm = signal('');
+  protected minimo = paraInput(new Date());
+  protected maximo = paraInput(new Date(Date.now() + 90 * 86_400_000));
 
   protected esEstudiante = computed(() => this.auth.usuario()?.rol === 'estudiante');
+  protected enVivo = computed(() => this.sesiones().filter(s => s.estado === 'en_vivo'));
+  protected proximas = computed(() => this.sesiones().filter(s => s.estado === 'programada'));
 
   protected form = this.fb.nonNullable.group({
     titulo: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(150)]],
@@ -122,18 +57,30 @@ export class Sesiones {
 
   constructor() {
     this.cargar();
+    // Cada minuto se actualiza la lista: así se ve cuando otra sesión pasa a "en vivo".
+    const intervalo = setInterval(() => this.cargar(), 60_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(intervalo));
+  }
+
+  ngOnInit(): void {
+    if (this.programar() && this.esEstudiante()) this.abrirFormulario();
+  }
+
+  abrirFormulario(): void {
+    this.minimo = paraInput(new Date());
+    this.creando.set(true);
   }
 
   esAnfitrion(s: SesionVivo): boolean {
     return s.anfitrion_id === this.auth.usuario()?.id;
   }
 
-  urlSala(s: SesionVivo): string {
-    return URL_JITSI + s.sala;
+  sala(s: SesionVivo): string {
+    return urlSala(s.sala, this.auth.usuario()?.nombre);
   }
 
-  fecha(iso: string): string {
-    return new Date(iso).toLocaleString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  cuenta(s: SesionVivo): string {
+    return cuentaRegresiva(s.inicia_en, this.reloj.ahora()) || 'Debería empezar ya';
   }
 
   crear(): void {
@@ -150,6 +97,7 @@ export class Sesiones {
         this.enviando.set(false);
         this.creando.set(false);
         this.form.reset();
+        this.avisos.exito('Sesión programada. Ya aparece en el feed para toda la comunidad.');
         this.cargar();
       },
       error: err => {
@@ -159,13 +107,47 @@ export class Sesiones {
     });
   }
 
-  cambiar(s: SesionVivo, estado: 'en_vivo' | 'finalizada'): void {
-    this.api.cambiarEstadoSesion(s.id, estado).subscribe({
+  /**
+   * La pestaña de Jitsi se abre en el mismo clic: si se abriera después de la respuesta
+   * de la API, el navegador la bloquearía como ventana emergente.
+   */
+  iniciar(s: SesionVivo): void {
+    const pestana = window.open(this.sala(s), '_blank');
+    if (pestana) pestana.opener = null;
+    this.cambiando.set(s.id);
+    this.api.cambiarEstadoSesion(s.id, 'en_vivo').subscribe({
       next: () => {
-        if (estado === 'en_vivo') window.open(this.urlSala(s), '_blank', 'noopener');
+        this.cambiando.set(null);
+        this.avisos.exito(pestana ? 'Tu sesión está en vivo. La sala se abrió en otra pestaña.' : 'Tu sesión está en vivo. Pulsa "Entrar a la sala" para abrirla.');
         this.cargar();
       },
-      error: err => this.error.set(mensajeDeError(err)),
+      error: err => {
+        pestana?.close();
+        this.cambiando.set(null);
+        this.avisos.error(mensajeDeError(err));
+      },
+    });
+  }
+
+  async terminar(s: SesionVivo): Promise<void> {
+    const cancelar = s.estado === 'programada';
+    const si = await this.avisos.confirmar(
+      cancelar
+        ? { titulo: '¿Cancelar la sesión?', texto: 'Desaparece de la lista y no cuenta en tu perfil.', aceptar: 'Sí, cancelar', cancelar: 'No', peligro: true }
+        : { titulo: '¿Finalizar la sesión?', texto: 'La sala deja de mostrarse como en vivo y la sesión suma a tu perfil como dictada.', aceptar: 'Sí, finalizar' },
+    );
+    if (!si) return;
+    this.cambiando.set(s.id);
+    this.api.cambiarEstadoSesion(s.id, 'finalizada').subscribe({
+      next: () => {
+        this.cambiando.set(null);
+        this.avisos.exito(cancelar ? 'Sesión cancelada.' : '¡Gracias por enseñar! La sesión ya cuenta en tu perfil.');
+        this.cargar();
+      },
+      error: err => {
+        this.cambiando.set(null);
+        this.avisos.error(mensajeDeError(err));
+      },
     });
   }
 
@@ -174,6 +156,7 @@ export class Sesiones {
       next: lista => {
         this.sesiones.set(lista);
         this.cargando.set(false);
+        this.error.set('');
       },
       error: err => {
         this.error.set(mensajeDeError(err));

@@ -2,8 +2,18 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import {
-  Comentario, DetallePublicacion, Portafolio, PerfilEditable, Propuesta, Publicacion, SesionVivo, Suscripcion, TarjetaTalento,
+  Candidato, Catalogos, Comentario, DetallePublicacion, EstudianteDestacado, FiltroPublicaciones, FiltroTalento,
+  Portafolio, PerfilEditable, Propuesta, Publicacion, SesionVivo, Suscripcion, TarjetaTalento,
 } from './modelos';
+
+/** Agrega solo los parámetros con valor: un filtro vacío no viaja. */
+function parametros(valores: Record<string, string | number | boolean>): HttpParams {
+  let params = new HttpParams();
+  for (const [clave, valor] of Object.entries(valores)) {
+    if (valor !== '' && valor !== false) params = params.set(clave, valor);
+  }
+  return params;
+}
 
 /** Un solo lugar para todas las llamadas a la API. El token lo agrega el interceptor. */
 @Injectable({ providedIn: 'root' })
@@ -11,9 +21,8 @@ export class Api {
   private http = inject(HttpClient);
   private base = '/api/v1';
 
-  listarPublicaciones(lenguaje: string, pagina: number): Observable<Publicacion[]> {
-    let params = new HttpParams().set('pagina', pagina);
-    if (lenguaje) params = params.set('lenguaje', lenguaje);
+  listarPublicaciones(filtro: Partial<FiltroPublicaciones>, pagina: number): Observable<Publicacion[]> {
+    const params = parametros({ ...filtro, pagina });
     return this.http
       .get<{ publicaciones: Publicacion[] }>(`${this.base}/publicaciones`, { params })
       .pipe(map(r => r.publicaciones));
@@ -21,6 +30,10 @@ export class Api {
 
   crearPublicacion(datos: { titulo: string; descripcion: string; lenguaje: string; codigo: string }): Observable<Publicacion> {
     return this.http.post<{ publicacion: Publicacion }>(`${this.base}/publicaciones`, datos).pipe(map(r => r.publicacion));
+  }
+
+  crearReto(datos: { titulo: string; descripcion: string; lenguaje: string; codigo: string; fecha_limite: string }): Observable<Publicacion> {
+    return this.http.post<{ publicacion: Publicacion }>(`${this.base}/retos`, datos).pipe(map(r => r.publicacion));
   }
 
   detalle(id: string): Observable<DetallePublicacion> {
@@ -51,12 +64,37 @@ export class Api {
     return this.http.put(`${this.base}/estudiantes/yo/perfil`, datos);
   }
 
-  talento(filtro: { lenguajes: string[]; ciudad: string; conMejoras: boolean }): Observable<TarjetaTalento[]> {
-    let params = new HttpParams();
-    if (filtro.lenguajes.length) params = params.set('lenguaje', filtro.lenguajes.join(','));
-    if (filtro.ciudad) params = params.set('ciudad', filtro.ciudad);
-    if (filtro.conMejoras) params = params.set('con_mejoras', 'true');
+  destacadosSemana(): Observable<{ estudiantes: EstudianteDestacado[]; dias: number }> {
+    return this.http.get<{ estudiantes: EstudianteDestacado[]; dias: number }>(`${this.base}/estudiantes/destacados`);
+  }
+
+  catalogos(): Observable<Catalogos> {
+    return this.http.get<Catalogos>(`${this.base}/catalogos`);
+  }
+
+  talento(filtro: FiltroTalento): Observable<TarjetaTalento[]> {
+    const params = parametros({
+      lenguaje: filtro.lenguajes.join(','),
+      ciudad: filtro.ciudad,
+      institucion: filtro.institucion,
+      nivel: filtro.nivel,
+      disponibilidad: filtro.disponibilidad,
+      modalidad: filtro.modalidad,
+      con_mejoras: filtro.conMejoras,
+    });
     return this.http.get<{ talento: TarjetaTalento[] }>(`${this.base}/talento`, { params }).pipe(map(r => r.talento));
+  }
+
+  candidatos(): Observable<{ candidatos: Candidato[]; con_correo: boolean }> {
+    return this.http.get<{ candidatos: Candidato[]; con_correo: boolean }>(`${this.base}/candidatos`);
+  }
+
+  guardarCandidato(estudianteId: string): Observable<unknown> {
+    return this.http.put(`${this.base}/candidatos/${estudianteId}`, {});
+  }
+
+  quitarCandidato(estudianteId: string): Observable<unknown> {
+    return this.http.delete(`${this.base}/candidatos/${estudianteId}`);
   }
 
   suscripcionActual(): Observable<Suscripcion | null> {

@@ -1,0 +1,53 @@
+.contenedor { display: flex; flex-direction: column; gap: 24px; max-width: 940px; }
+.volver { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; align-self: flex-start; }
+.encabezado { display: flex; flex-direction: column; gap: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+h1 { font-size: clamp(26px, 4.2vw, 40px); line-height: 1.15; }
+h2 { font-size: 20px; }
+h3 { font-size: 18px; }
+.autor { display: flex; align-items: center; gap: 12px; }
+.autor div { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.autor a { text-decoration: none; }
+.autor .tenue { font-size: 12px; }
+.descripcion { font-size: 15px; line-height: 1.7; color: #3D3B36; }
+.limite { padding: 12px 14px; background: var(--coral-fondo); border: 2px solid var(--tinta); border-radius: 4px; font-size: 14px; line-height: 1.6; }
+
+.editor { border-radius: 8px; outline: 2px solid var(--tinta); box-shadow: 8px 8px 0 var(--tinta); overflow: hidden; background: var(--editor); }
+.editor app-codigo ::ng-deep .bloque-codigo { border-radius: 0; font-size: 14px; padding: 16px 0; }
+.barra { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 16px; background: var(--editor-barra); color: var(--editor-tenue); font-size: 12px; }
+.copiar { min-height: 36px; padding: 0 12px; border: 1px solid #4A4840; border-radius: 4px; background: transparent; color: var(--editor-tenue); font: inherit; font-size: 12px; cursor: pointer; }
+.copiar:hover { color: var(--papel); border-color: var(--editor-tenue); }
+.sin-codigo { padding: 18px; color: var(--editor-tenue); font-size: 13px; }
+
+.bloque { display: flex; flex-direction: column; gap: 16px; padding-top: 18px; border-top: 2px solid var(--tinta); }
+.aviso { padding: 12px 14px; background: var(--azul-fondo); border: 2px solid var(--azul); border-radius: 4px; font-size: 14px; line-height: 1.6; }
+.vacio-bloque { font-size: 14px; }
+
+.propuesta { padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.propuesta.aceptada { box-shadow: 6px 6px 0 var(--verde); border-color: var(--verde-texto); }
+.propuesta.rechazada { opacity: .65; }
+.meta { display: flex; align-items: center; gap: 10px; }
+.quien { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; flex: 1; min-width: 0; font-size: 12px; color: var(--tenue); }
+.quien a, .quien strong { font-size: 14px; font-weight: 800; color: var(--tinta); text-decoration: none; }
+.quien a:hover { color: var(--azul); }
+.estado-aceptada { border-color: var(--verde-texto); color: var(--verde-texto); background: var(--verde-fondo); }
+.estado-pendiente { border-color: var(--azul); color: var(--azul); }
+.estado-rechazada { border-color: var(--tenue); color: var(--tenue); }
+.explicacion { font-size: 14px; line-height: 1.7; }
+.vista { display: inline-flex; align-self: flex-start; border: 2px solid var(--tinta); border-radius: 4px; overflow: hidden; }
+.vista button { min-height: 40px; padding: 0 14px; border: 0; background: var(--blanco); color: var(--tinta); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.vista button + button { border-left: 2px solid var(--tinta); }
+.vista button.on { background: var(--tinta); color: var(--papel); }
+.decision { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.formulario { padding: clamp(18px, 3vw, 24px); display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 90px; }
+.formulario .tenue { font-size: 13px; line-height: 1.6; }
+.formulario > .btn { align-self: flex-start; }
+.herramientas { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.enlace { min-height: 44px; padding: 0; border: 0; background: none; color: var(--azul); font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+.comentario { display: flex; gap: 12px; padding: 14px 16px; background: var(--blanco); border: 2px solid var(--linea); border-radius: 4px; }
+.cuerpo-comentario { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.comentario p { font-size: 14px; line-height: 1.6; }
+.comentar { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.comentar .campo { width: 100%; }

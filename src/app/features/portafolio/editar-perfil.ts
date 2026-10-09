@@ -1,8 +1,10 @@
 import { Component, OnInit, inject, input, output, signal } from '@angular/core';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Api } from '../../core/api';
-import { DISPONIBILIDADES, MODALIDADES, PerfilEditable, PerfilEstudiante } from '../../core/modelos';
+import { DISPONIBILIDADES, Experiencia, MODALIDADES, PerfilEditable, PerfilEstudiante } from '../../core/modelos';
 import { mensajeDeError } from '../../core/api-error';
+
+type GrupoExperiencia = FormGroup<{ [K in keyof Experiencia]: FormControl<Experiencia[K]> }>;
 
 @Component({
   selector: 'app-editar-perfil',
@@ -65,8 +67,8 @@ import { mensajeDeError } from '../../core/api-error';
             <div class="dos">
               <label class="campo">Cargo<input type="text" formControlName="cargo" maxlength="100"></label>
               <label class="campo">Empresa<input type="text" formControlName="empresa" maxlength="100"></label>
-              <label class="campo">Desde<input type="month" formControlName="inicio"></label>
-              <label class="campo">Hasta (vacío si es tu trabajo actual)<input type="month" formControlName="fin"></label>
+              <label class="campo">Desde<input type="month" formControlName="inicio" placeholder="AAAA-MM"></label>
+              <label class="campo">Hasta (vacío si es tu trabajo actual)<input type="month" formControlName="fin" placeholder="AAAA-MM"></label>
             </div>
             <label class="campo">Qué hiciste<textarea formControlName="descripcion" rows="2" maxlength="500"></textarea></label>
             <button class="quitar" type="button" (click)="experiencia.removeAt(i)">Quitar esta experiencia</button>
@@ -85,11 +87,23 @@ import { mensajeDeError } from '../../core/api-error';
         </label>
         <label class="campo">Idiomas (separados por comas)
           <input type="text" formControlName="idiomas" placeholder="Español nativo, Inglés B1">
+          <span class="ayuda">Indica el nivel de cada idioma, como lo leería un reclutador: nativo, o A1 a C2.</span>
         </label>
         <div class="dos">
           <label class="campo">GitHub<input type="url" formControlName="github_url" placeholder="https://github.com/usuario"></label>
           <label class="campo">LinkedIn<input type="url" formControlName="linkedin_url" placeholder="https://www.linkedin.com/in/usuario"></label>
           <label class="campo">Sitio o portafolio personal<input type="url" formControlName="sitio_url" placeholder="https://..."></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Privacidad</legend>
+        <div class="interruptor">
+          <label for="contacto-visible">
+            <input type="checkbox" role="switch" id="contacto-visible" formControlName="contacto_visible" aria-describedby="ayuda-contacto">
+            <span>Mostrar mi correo a las empresas suscritas</span>
+          </label>
+          <span class="ayuda" id="ayuda-contacto">Si lo desactivas, las empresas verán tu portafolio pero no tu correo. Puedes cambiarlo cuando quieras.</span>
         </div>
       </fieldset>
 
@@ -110,6 +124,17 @@ import { mensajeDeError } from '../../core/api-error';
     .ayuda { font-size: 12px; }
     .experiencia { padding: 16px; border: 1px solid var(--linea); border-radius: 4px; display: flex; flex-direction: column; gap: 12px; }
     .quitar { align-self: flex-start; background: none; border: 0; padding: 4px 0; color: var(--coral-texto); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; }
+    .interruptor { display: flex; flex-direction: column; gap: 2px; }
+    .interruptor label { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    /* El círculo es un degradado de fondo: se desliza al activar, sin pseudo-elementos en el input. */
+    .interruptor input {
+      appearance: none; flex: none; width: 48px; height: 28px; margin: 0; cursor: pointer;
+      border: 2px solid var(--tinta); border-radius: 999px;
+      background: radial-gradient(circle, var(--blanco) 0 7px, var(--tinta) 7.5px 9px, transparent 9.5px) 0 50% / 24px 24px no-repeat var(--linea);
+      transition: background-position .15s, background-color .15s;
+    }
+    .interruptor input:checked { background-color: var(--azul); background-position: 100% 50%; }
+    .interruptor .ayuda { color: var(--tenue); line-height: 1.5; }
     .acciones { display: flex; flex-wrap: wrap; gap: 10px; }
   `,
 })
@@ -118,7 +143,8 @@ export class EditarPerfil implements OnInit {
   private api = inject(Api);
 
   readonly perfil = input.required<PerfilEstudiante>();
-  readonly guardado = output<void>();
+  /** Emite el GitHub guardado para que el avatar del encabezado se actualice. */
+  readonly guardado = output<string>();
   readonly cancelado = output<void>();
 
   protected disponibilidades = DISPONIBILIDADES;
@@ -139,15 +165,16 @@ export class EditarPerfil implements OnInit {
     semestre: [null as number | null, [Validators.min(1), Validators.max(12)]],
     anio_inicio: [null as number | null, [Validators.min(1990), Validators.max(2040)]],
     anio_fin: [null as number | null, [Validators.min(1990), Validators.max(2045)]],
-    experiencia: this.fb.array<FormGroup>([]),
+    experiencia: this.fb.array<GrupoExperiencia>([]),
     stack: [''],
     idiomas: [''],
     github_url: [''],
     linkedin_url: [''],
     sitio_url: [''],
+    contacto_visible: [true],
   });
 
-  get experiencia(): FormArray {
+  get experiencia(): FormArray<GrupoExperiencia> {
     return this.form.controls.experiencia;
   }
 
@@ -160,16 +187,17 @@ export class EditarPerfil implements OnInit {
       semestre: p.semestre, anio_inicio: p.anio_inicio, anio_fin: p.anio_fin,
       stack: p.stack.join(', '), idiomas: p.idiomas.join(', '),
       github_url: p.github_url, linkedin_url: p.linkedin_url, sitio_url: p.sitio_url,
+      contacto_visible: p.contacto_visible,
     });
     p.experiencia.forEach(e => this.experiencia.push(this.grupoExperiencia(e)));
   }
 
-  grupoExperiencia(e = { cargo: '', empresa: '', inicio: '', fin: '', descripcion: '' }) {
+  grupoExperiencia(e: Experiencia = { cargo: '', empresa: '', inicio: '', fin: '', descripcion: '' }): GrupoExperiencia {
     return this.fb.nonNullable.group({
       cargo: [e.cargo, [Validators.required, Validators.maxLength(100)]],
       empresa: [e.empresa, [Validators.required, Validators.maxLength(100)]],
-      inicio: [e.inicio, Validators.required],
-      fin: [e.fin],
+      inicio: [e.inicio, [Validators.required, Validators.pattern(/^\d{4}-(0[1-9]|1[0-2])$/)]],
+      fin: [e.fin, Validators.pattern(/^\d{4}-(0[1-9]|1[0-2])$/)],
       descripcion: [e.descripcion, Validators.maxLength(500)],
     });
   }
@@ -180,7 +208,13 @@ export class EditarPerfil implements OnInit {
 
   guardar(): void {
     if (this.form.invalid) {
-      this.error.set('Revisa los campos marcados: en experiencia, cargo, empresa y fecha de inicio son obligatorios.');
+      const nombres: Record<string, string> = {
+        titular: 'Titular', ciudad: 'Ciudad', biografia: 'Acerca de ti', programa: 'Programa',
+        institucion: 'Institución', semestre: 'Semestre (1 a 12)', anio_inicio: 'Año de inicio (desde 1990)',
+        anio_fin: 'Año de finalización', experiencia: 'Experiencia (cargo, empresa y fechas como 2026-02)',
+      };
+      const malos = Object.entries(this.form.controls).filter(([, c]) => c.invalid).map(([k]) => nombres[k] ?? k);
+      this.error.set(`Revisa estos campos: ${malos.join(', ')}.`);
       return;
     }
     const v = this.form.getRawValue();
@@ -201,7 +235,7 @@ export class EditarPerfil implements OnInit {
     this.api.actualizarPerfil(datos).subscribe({
       next: () => {
         this.guardando.set(false);
-        this.guardado.emit();
+        this.guardado.emit(datos.github_url);
       },
       error: err => {
         this.error.set(mensajeDeError(err));

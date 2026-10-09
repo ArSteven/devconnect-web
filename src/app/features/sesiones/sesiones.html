@@ -1,0 +1,110 @@
+<section class="contenedor">
+  <div class="cabecera">
+    <div>
+      <h1>Sesiones en vivo</h1>
+      <p class="bajada">Un estudiante explica un tema en vivo y los demás preguntan. Dictar sesiones suma a tu perfil.</p>
+    </div>
+    @if (esEstudiante() && !creando()) {
+      <button class="btn btn-primario" type="button" (click)="abrirFormulario()">+ Programar sesión</button>
+    }
+  </div>
+
+  <details class="card guia" [open]="!cargando() && !sesiones().length">
+    <summary>Cómo funciona una sesión</summary>
+    <ol>
+      <li><strong>Programa</strong> la sesión con título, fecha y hora. Aparece en el feed con cuenta regresiva.</li>
+      <li>A la hora, pulsa <strong>Iniciar ahora</strong>: la sala se abre en <strong>meet.jit.si</strong> en otra pestaña, con tu nombre ya escrito.</li>
+      <li>Si dictas la sesión, Jitsi te pedirá <strong>iniciar sesión con Google o GitHub</strong>: así abres la sala como moderador. Quienes lleguen antes esperan hasta que entres.</li>
+      <li>Al terminar, pulsa <strong>Finalizar</strong>: la sesión queda en tu perfil como dictada.</li>
+    </ol>
+  </details>
+
+  @if (creando()) {
+    <form class="card formulario aparecer" [formGroup]="form" (ngSubmit)="crear()" novalidate>
+      <h2>Programar sesión</h2>
+      <label class="campo">Título<input type="text" formControlName="titulo" maxlength="150" placeholder="Ej.: Punteros en Go sin miedo"></label>
+      <label class="campo">Fecha y hora
+        <input type="datetime-local" formControlName="inicia_en" [min]="minimo" [max]="maximo">
+        <span class="ayuda">Desde ahora hasta 90 días adelante, en tu hora local.</span>
+      </label>
+      <label class="campo">Descripción (opcional)<textarea formControlName="descripcion" rows="3" maxlength="1000" placeholder="Qué vas a explicar y qué conviene saber antes."></textarea></label>
+      @if (errorForm()) {
+        <p class="error" role="alert">{{ errorForm() }}</p>
+      }
+      <div class="acciones">
+        <button class="btn btn-primario" type="submit" [disabled]="enviando()">{{ enviando() ? 'Programando…' : 'Programar' }}</button>
+        <button class="btn btn-secundario" type="button" (click)="creando.set(false)">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (cargando()) {
+    <app-cargando texto="Cargando sesiones…" />
+  } @else {
+    @if (enVivo().length) {
+      <h2 class="seccion"><span class="punto-vivo" aria-hidden="true"></span> En vivo ahora</h2>
+      <div class="lista">
+        @for (s of enVivo(); track s.id; let i = $index) {
+          <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: s, i: i }" />
+        }
+      </div>
+    }
+
+    <h2 class="seccion">Próximas</h2>
+    <div class="lista">
+      @for (s of proximas(); track s.id; let i = $index) {
+        <ng-container *ngTemplateOutlet="tarjeta; context: { $implicit: s, i: i }" />
+      } @empty {
+        <div class="card vacio">
+          <strong>No hay sesiones programadas.</strong>
+          @if (esEstudiante()) {
+            <span>¿Dominas un tema? Explícalo en vivo: a otros les ayuda y a ti te suma en tu perfil.</span>
+            @if (!creando()) {
+              <button class="btn btn-primario" type="button" (click)="abrirFormulario()">Programar la primera sesión</button>
+            }
+          } @else {
+            <span>Las sesiones las dictan estudiantes. Cuando programen una aparecerá aquí y podrás entrar a verla.</span>
+          }
+        </div>
+      }
+    </div>
+  }
+</section>
+
+<ng-template #tarjeta let-s let-i="i">
+  <article class="card sesion aparecer" [style.--i]="i" [class.envivo]="s.estado === 'en_vivo'">
+    <div class="estado">
+      @if (s.estado === 'en_vivo') {
+        <span class="punto-vivo" aria-hidden="true"></span> En vivo
+      } @else {
+        <span class="cuenta">{{ cuenta(s) }}</span> · {{ fechaCorta(s.inicia_en) }}
+      }
+    </div>
+    <h3>{{ s.titulo }}</h3>
+    @if (s.descripcion) {
+      <p class="descripcion texto-libre">{{ s.descripcion }}</p>
+    }
+    <p class="anfitrion">
+      <app-avatar [nombre]="s.anfitrion_nombre" [github]="s.anfitrion_github" [tamano]="26" />
+      Dicta <a [routerLink]="['/portafolio', s.anfitrion_id]">{{ s.anfitrion_nombre }}</a>
+    </p>
+
+    <div class="acciones">
+      @if (s.estado === 'en_vivo') {
+        <a class="btn btn-primario" [href]="sala(s)" target="_blank" rel="noopener">Entrar a la sala ↗</a>
+      }
+      @if (esAnfitrion(s)) {
+        @if (s.estado === 'programada') {
+          <button class="btn btn-primario" type="button" [disabled]="cambiando() === s.id" (click)="iniciar(s)">Iniciar ahora ↗</button>
+          <button class="btn btn-peligro" type="button" [disabled]="cambiando() === s.id" (click)="terminar(s)">Cancelar sesión</button>
+        } @else {
+          <button class="btn btn-secundario" type="button" [disabled]="cambiando() === s.id" (click)="terminar(s)">Finalizar</button>
+        }
+      }
+    </div>
+  </article>
+</ng-template>

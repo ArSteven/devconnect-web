@@ -1,0 +1,98 @@
+<section class="contenedor">
+  <div class="cabecera">
+    <div>
+      <h1>Retos de <span class="resaltado">empresas</span></h1>
+      <p class="bajada">
+        Empresas de la región publican problemas reales. Envía tu solución: si la eligen, queda en tu perfil
+        como "Resolvió el reto de" esa empresa.
+      </p>
+    </div>
+    @if (esEmpresa() && suscripcion() && !creando()) {
+      <button class="btn btn-primario" type="button" (click)="abrirFormulario()">+ Publicar reto</button>
+    }
+  </div>
+
+  @if (esEmpresa() && suscripcion() === null) {
+    <div class="card aviso-plan">
+      <div>
+        <strong>Publicar retos es parte de la suscripción.</strong>
+        <span>Evalúa a los estudiantes con un problema de tu empresa y elige la mejor solución.</span>
+      </div>
+      <a class="btn btn-primario" routerLink="/planes">Ver planes →</a>
+    </div>
+  }
+
+  @if (creando()) {
+    <form class="card formulario aparecer" [formGroup]="form" (ngSubmit)="publicar()" novalidate>
+      <h2>Publicar un reto</h2>
+      <label class="campo">Título<input type="text" formControlName="titulo" maxlength="150" placeholder="Ej.: Endpoint de inventario con paginación"></label>
+      <label class="campo">Descripción
+        <textarea formControlName="descripcion" rows="5" maxlength="2000" placeholder="Qué debe resolver, con qué restricciones y cómo vas a evaluar las soluciones."></textarea>
+      </label>
+      <div class="dos">
+        <label class="campo">Lenguaje
+          <select formControlName="lenguaje">
+            @for (l of lenguajes; track l.valor) { <option [value]="l.valor">{{ l.etiqueta }}</option> }
+          </select>
+        </label>
+        <label class="campo">Fecha límite
+          <input type="datetime-local" formControlName="fecha_limite" [min]="minimo" [max]="maximo">
+          <span class="ayuda">Entre una hora y 90 días desde ahora.</span>
+        </label>
+      </div>
+      <label class="campo">Código inicial (opcional)
+        <textarea formControlName="codigo" rows="8" class="campo-codigo" appCampoCodigo aria-describedby="ayuda-tab" placeholder="Una plantilla o el código a mejorar."></textarea>
+        <span class="ayuda" id="ayuda-tab">Tab agrega sangría. Para salir del campo con el teclado, pulsa Esc y luego Tab.</span>
+      </label>
+      @if (errorForm()) { <p class="error" role="alert">{{ errorForm() }}</p> }
+      <div class="acciones">
+        <button class="btn btn-primario" type="submit" [disabled]="enviando()">{{ enviando() ? 'Publicando…' : 'Publicar reto' }}</button>
+        <button class="btn btn-secundario" type="button" (click)="creando.set(false)">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  @if (cargando()) {
+    <app-cargando texto="Cargando retos…" />
+  } @else {
+    <div class="grilla">
+      @for (r of ordenados(); track r.id; let i = $index) {
+        <a class="card reto card-interactiva aparecer" [style.--i]="i" [class.cerrado]="cierre(r) === 'Cerrado'" [routerLink]="['/publicacion', r.id]">
+          <div class="empresa">
+            <app-avatar [nombre]="r.autor_nombre" [tamano]="34" />
+            <div>
+              <strong>{{ r.autor_nombre }}</strong>
+              <span>{{ hace(r.creado_en) }}</span>
+            </div>
+            <app-tecnologia class="logo" [nombre]="r.lenguaje" [tamano]="26" [conNombre]="false" />
+          </div>
+          <h3>{{ r.titulo }}</h3>
+          <p class="descripcion">{{ r.descripcion }}</p>
+          <div class="pie">
+            <span class="chip" [class.chip-abierta]="cierre(r) !== 'Cerrado'">{{ cierre(r) }}</span>
+            <span>{{ r.total_propuestas }} {{ r.total_propuestas === 1 ? 'solución' : 'soluciones' }}</span>
+            @if (r.autor_id === yo()) { <span class="chip chip-reto">Tu reto</span> }
+          </div>
+          @if (cierre(r) !== 'Cerrado') {
+            <span class="limite">Hasta el {{ fechaCorta(r.fecha_limite!) }}</span>
+          }
+        </a>
+      } @empty {
+        <div class="card vacio">
+          <strong>Aún no hay retos publicados.</strong>
+          @if (esEmpresa()) {
+            <span>Publica el primero: es la forma más directa de ver cómo resuelven problemas los estudiantes.</span>
+          } @else {
+            <span>Cuando una empresa publique uno, aparecerá aquí. Mientras tanto, ayuda a otros estudiantes en el feed.</span>
+            <a class="btn btn-secundario btn-pequeno" routerLink="/feed">Ir al feed</a>
+          }
+        </div>
+      }
+    </div>
+    @if (hayMas()) {
+      <button class="btn btn-secundario mas" type="button" (click)="cargarMas()">Cargar más</button>
+    }
+  }
+</section>

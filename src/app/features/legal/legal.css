@@ -1,0 +1,13 @@
+/* Páginas legales: texto largo para leer con calma. Máximo 72 caracteres por línea. */
+.documento {
+  max-width: 800px; margin: 0 auto; padding: clamp(20px, 5vw, 40px);
+  display: flex; flex-direction: column; gap: 28px;
+}
+header { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; border-bottom: 2px solid var(--linea); }
+h1 { font-size: clamp(26px, 5vw, 36px); }
+.version { font-size: 13px; color: var(--tenue); }
+section { display: flex; flex-direction: column; gap: 10px; }
+h2 { font-size: 17px; letter-spacing: -0.02em; line-height: 1.35; }
+p, li { max-width: 72ch; font-size: 15px; line-height: 1.75; color: #3D3B36; }
+ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+a { font-weight: 700; overflow-wrap: anywhere; }
