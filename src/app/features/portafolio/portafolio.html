@@ -33,6 +33,7 @@
         <div class="acciones-encabezado">
           @if (esPropio()) {
             <button class="btn btn-secundario" type="button" (click)="abrirEdicion()">Editar perfil</button>
+            <button class="btn btn-primario" type="button" (click)="compartiendo.set(true)">Compartir mi tarjeta</button>
           } @else if (esEmpresa()) {
             <button class="btn" [class.btn-secundario]="!d.guardado" [class.guardado]="d.guardado" type="button"
                     [disabled]="guardando()" [attr.aria-pressed]="d.guardado" (click)="alternarGuardado()">
@@ -88,7 +89,13 @@
                       <app-tecnologia [nombre]="x.lenguaje" [tamano]="16" />
                       <span class="tenue">{{ hace(x.fecha) }}</span>
                     </div>
-                    @if (x.es_reto) { <span class="chip chip-reto">Resolvió el reto de {{ x.autor_original }}</span> }
+                    @if (x.es_reto || x.verificada) {
+                      <div class="sellos">
+                        @if (x.es_reto) { <span class="chip chip-reto">Resolvió el reto de {{ x.autor_original }}</span> }
+                        @if (x.es_reto && x.defensa_aprobada) { <span class="chip sello-verde">✓ Defensa aprobada</span> }
+                        @if (x.verificada) { <span class="chip sello-verde" title="Otra persona la ejecutó en Pruébalo: corre sin errores y cambia el resultado">✓ Mejora verificada por ejecución</span> }
+                      </div>
+                    }
                     <strong>«{{ x.titulo }}»</strong>
                     @if (!x.es_reto) { <span class="tenue">Código de {{ x.autor_original }}</span> }
                     <p class="explicacion">{{ x.explicacion }}</p>
@@ -231,5 +238,9 @@
     }
   } @else if (!error()) {
     <app-cargando texto="Cargando el perfil…" />
+  }
+
+  @if (compartiendo() && esPropio() && datos(); as d) {
+    <app-compartir-tarjeta [datos]="d" (cerrar)="compartiendo.set(false)" />
   }
 </section>

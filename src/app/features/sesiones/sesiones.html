@@ -45,6 +45,40 @@
   @if (cargando()) {
     <app-cargando texto="Cargando sesiones…" />
   } @else {
+    <!-- Defensas en vivo de retos: privadas, de la empresa y del estudiante que cita. -->
+    @if (defensas().length) {
+      <h2 class="seccion">Tus defensas en vivo</h2>
+      <p class="privada">Son privadas: solo las ven la empresa del reto y quien envió la solución.</p>
+      <div class="lista">
+        @for (d of defensas(); track d.id; let i = $index) {
+          <article class="card sesion defensa aparecer" [style.--i]="i" [class.cancelada]="d.estado === 'cancelada'" [class.aprobada]="d.aprobada">
+            <div class="estado">
+              @if (d.estado === 'invitada') {
+                <span class="cuenta">{{ cuenta(d) }}</span> · {{ fechaCorta(d.inicia_en) }} · {{ d.duracion_min }} min
+              } @else {
+                {{ d.estado === 'cancelada' ? 'Cancelada' : d.aprobada ? '✓ Defensa aprobada' : 'Realizada' }} · {{ fechaCorta(d.inicia_en) }}
+              }
+            </div>
+            <h3>{{ d.titulo }}</h3>
+            <p class="anfitrion">
+              @if (esEstudiante()) {
+                {{ d.empresa_nombre }} te invitó a defender tu solución en vivo.
+              } @else {
+                <app-avatar [nombre]="d.estudiante_nombre" [github]="d.estudiante_github" [tamano]="26" />
+                Con <a [routerLink]="['/portafolio', d.estudiante_id]">{{ d.estudiante_nombre }}</a>
+              }
+            </p>
+            <div class="acciones">
+              @if (d.estado === 'invitada') {
+                <a class="btn btn-primario" [href]="salaDefensa(d)" target="_blank" rel="noopener">Entrar a la sala ↗</a>
+              }
+              <a class="btn btn-secundario" [routerLink]="['/publicacion', d.publicacion_id]" [fragment]="'propuesta-' + d.propuesta_id">Ver la solución</a>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
     @if (enVivo().length) {
       <h2 class="seccion"><span class="punto-vivo" aria-hidden="true"></span> En vivo ahora</h2>
       <div class="lista">

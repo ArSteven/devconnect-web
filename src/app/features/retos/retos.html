@@ -25,6 +25,14 @@
   @if (creando()) {
     <form class="card formulario aparecer" [formGroup]="form" (ngSubmit)="publicar()" novalidate>
       <h2>Publicar un reto</h2>
+      <aside class="guia-reto" aria-labelledby="guia-reto">
+        <strong id="guia-reto">Cómo hacer un buen reto</strong>
+        <ul>
+          <li>Usa el contexto real de tu empresa: un fragmento de su código o las restricciones de su negocio.</li>
+          <li>Pide que se justifiquen las decisiones, no solo que el código funcione.</li>
+        </ul>
+        <p>Esos retos son más difíciles de resolver solo con inteligencia artificial y muestran mejor cómo piensa cada estudiante.</p>
+      </aside>
       <label class="campo">Título<input type="text" formControlName="titulo" maxlength="150" placeholder="Ej.: Endpoint de inventario con paginación"></label>
       <label class="campo">Descripción
         <textarea formControlName="descripcion" rows="5" maxlength="2000" placeholder="Qué debe resolver, con qué restricciones y cómo vas a evaluar las soluciones."></textarea>

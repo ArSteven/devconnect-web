@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<!-- Sin red salvo el CDN de los intérpretes: el código que se prueba no puede enviar ni traer nada. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; worker-src blob:; connect-src https://cdn.jsdelivr.net">
+<title>Ejecutor de Pruébalo</title>
+</head>
+<body>
+<!--
+  Ejecutor de «Pruébalo». DevConnect lo carga en un iframe con sandbox="allow-scripts" y sin
+  allow-same-origin: el documento no tiene origen propio, así que lo que se ejecuta aquí no ve el DOM de
+  DevConnect, sus cookies ni la sesión, y la API (sin CORS) no le responde. Cada programa corre en un
+  Worker que se termina si no acaba a tiempo; Python, SQL y el compilador de TypeScript se cargan desde
+  el CDN la primera vez que se usan.
+-->
+<script id="trabajador" type="text/plain">
+'use strict';
+const MAX_SALIDA = 10000;
+const MAX_FILAS = 200;
+const CDN = {
+  ts: 'https://cdn.jsdelivr.net/npm/typescript@5.9.3/lib/typescript.js',
+  py: 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/',
+  sql: 'https://cdn.jsdelivr.net/npm/sql.js@1.13.0/dist/',
+};
+const enviar = m => self.postMessage(m);
+
+// La salida viaja al ejecutor a medida que se produce: si el programa no termina, igual se ve lo impreso.
+let usados = 0;
+let recortada = false;
+let error = false;
+function escribir(flujo, texto) {
+  if (!texto) return;
+  if (usados >= MAX_SALIDA) { recortada = true; return; }
+  if (usados + texto.length > MAX_SALIDA) { texto = texto.slice(0, MAX_SALIDA - usados); recortada = true; }
+  usados += texto.length;
+  enviar({ tipo: 'salida', flujo, texto });
+}
+function nuevaEjecucion() { usados = 0; recortada = false; error = false; }
+
+// ── JavaScript (y TypeScript ya transpilado): un Worker nuevo por ejecución ──
+function formatear(v, nivel = 0, vistos = new WeakSet()) {
+  if (typeof v === 'string') return nivel ? JSON.stringify(v) : v;
+  if (typeof v === 'bigint') return v + 'n';
+  if (typeof v === 'symbol') return v.toString();
+  if (typeof v === 'function') return '[Function: ' + (v.name || '(anónima)') + ']';
+  if (v === null || typeof v !== 'object') return String(v);
+  if (v instanceof Error) return v.name + ': ' + v.message;
+  if (vistos.has(v)) return '[Circular]';
+  if (nivel > 3) return Array.isArray(v) ? '[Array]' : '[Object]';
+  vistos.add(v);
+  try {
+    const sub = x => formatear(x, nivel + 1, vistos);
+    if (Array.isArray(v)) return v.length ? '[ ' + v.map(sub).join(', ') + ' ]' : '[]';
+    if (v instanceof Map) return 'Map(' + v.size + ') { ' + [...v].map(([k, x]) => sub(k) + ' => ' + sub(x)).join(', ') + ' }';
+    if (v instanceof Set) return 'Set(' + v.size + ') { ' + [...v].map(sub).join(', ') + ' }';
+    if (v instanceof Date) return v.toISOString();
+    const claves = Object.keys(v);
+    const nombre = v.constructor && v.constructor !== Object && v.constructor.name ? v.constructor.name + ' ' : '';
+    if (!claves.length) return nombre + '{}';
+    return nombre + '{ ' + claves.map(k => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k)) + ': ' + sub(v[k])).join(', ') + ' }';
+  } finally {
+    vistos.delete(v);
+  }
+}
+
+function ejecutarJs(codigo, conLineas) {
+  const imprimir = flujo => (...args) => escribir(flujo, args.map(a => formatear(a)).join(' ') + '\n');
+  for (const k of ['log', 'info', 'debug', 'dir', 'table']) console[k] = imprimir('stdout');
+  for (const k of ['warn', 'error', 'trace']) console[k] = imprimir('stderr');
+  console.assert = (condicion, ...args) => { if (!condicion) imprimir('stderr')('Assertion failed:', ...args); };
+
+  // El cuerpo va dentro de una función: la línea 1 del programa es la 3 del código generado.
+  const ubicacion = e => {
+    const m = conLineas && /programa\.js:(\d+):(\d+)/.exec(String((e && e.stack) || ''));
+    return m ? ' (línea ' + (Number(m[1]) - 2) + ')' : '';
+  };
+  const fallo = e => {
+    error = true;
+    escribir('stderr', (e instanceof Error ? e.name + ': ' + e.message + ubicacion(e) : 'Uncaught ' + formatear(e)) + '\n');
+  };
+
+  // Temporizadores: el programa termina cuando ya no queda ninguno pendiente.
+  const vivos = new Set();
+  const st = self.setTimeout.bind(self);
+  const ct = self.clearTimeout.bind(self);
+  const si = self.setInterval.bind(self);
+  const ci = self.clearInterval.bind(self);
+  let principalTermino = false;
+  let cerrado = false;
+  const inicio = performance.now();
+  const revisar = () => {
+    if (!principalTermino || vivos.size || cerrado) return;
+    cerrado = true;
+    st(() => enviar({ tipo: 'fin', error, recortada, ms: Math.round(performance.now() - inicio) }), 0);
+  };
+  const llamar = (fn, args) => { try { if (typeof fn === 'function') fn(...args); } catch (e) { fallo(e); } };
+  self.setTimeout = (fn, ms, ...args) => { const id = st(() => { vivos.delete(id); llamar(fn, args); revisar(); }, ms); vivos.add(id); return id; };
+  self.clearTimeout = id => { if (vivos.delete(id)) ct(id); revisar(); };
+  self.setInterval = (fn, ms, ...args) => { const id = si(() => llamar(fn, args), ms); vivos.add(id); return id; };
+  self.clearInterval = id => { if (vivos.delete(id)) ci(id); revisar(); };
+  self.addEventListener('unhandledrejection', e => { e.preventDefault(); fallo(e.reason); revisar(); });
+
+  const modulo = { exports: {} };
+  const requerir = nombre => { throw new Error('Pruébalo no puede cargar módulos («' + nombre + '»): escribe todo en un solo archivo'); };
+  // El aviso sale antes de llamar al programa: un bucle infinito no lo dejaría salir después.
+  enviar({ tipo: 'inicio' });
+  let principal;
+  try {
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    principal = new AsyncFunction('exports', 'module', 'require', codigo + '\n//# sourceURL=programa.js')(modulo.exports, modulo, requerir);
+  } catch (e) {
+    principal = Promise.reject(e);
+  }
+  principal.catch(fallo).finally(() => { principalTermino = true; revisar(); });
+}
+
+// ── TypeScript: el compilador se carga una vez y solo transpila; el resultado corre como JavaScript ──
+// El compilador declara la variable global `ts`: aquí se guarda con otro nombre para no chocar con ella.
+let compilador = null;
+async function transpilar(codigo) {
+  if (!compilador) {
+    enviar({ tipo: 'preparando', texto: 'Preparando TypeScript…' });
+    // Desde un documento sin origen, importScripts no carga este archivo (9 MB): se descarga y se evalúa.
+    const r = await fetch(CDN.ts);
+    if (!r.ok) throw new Error('el CDN respondió ' + r.status);
+    (0, eval)(await r.text());
+    compilador = self.ts;
+  }
+  const ts = compilador;
+  const r = ts.transpileModule(codigo, {
+    fileName: 'programa.ts',
+    reportDiagnostics: true,
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  });
+  const errores = (r.diagnostics || []).filter(d => d.category === ts.DiagnosticCategory.Error).map(d => {
+    const texto = ts.flattenDiagnosticMessageText(d.messageText, '\n');
+    if (!d.file || d.start === undefined) return 'error TS' + d.code + ': ' + texto;
+    const p = d.file.getLineAndCharacterOfPosition(d.start);
+    return 'programa.ts(' + (p.line + 1) + ',' + (p.character + 1) + '): error TS' + d.code + ': ' + texto;
+  });
+  enviar({ tipo: 'transpilado', js: r.outputText, errores });
+}
+
+// ── Python con Pyodide (WebAssembly): se carga la primera vez y queda listo para las siguientes ──
+let pyodide = null;
+async function ejecutarPython(codigo) {
+  if (!pyodide) {
+    enviar({ tipo: 'preparando', texto: 'Preparando Python…' });
+    importScripts(CDN.py + 'pyodide.js');
+    pyodide = await loadPyodide({ indexURL: CDN.py });
+  }
+  if (pyodide.loadPackagesFromImports) {
+    await pyodide.loadPackagesFromImports(codigo, { messageCallback: () => {}, errorCallback: () => {} });
+  }
+  pyodide.setStdout({ batched: t => escribir('stdout', t + '\n') });
+  pyodide.setStderr({ batched: t => escribir('stderr', t + '\n') });
+  pyodide.setStdin({ stdin: () => null }); // input() recibe fin de archivo: no hay teclado aquí
+  const globales = pyodide.globals.get('dict')();
+  enviar({ tipo: 'inicio' });
+  const inicio = performance.now();
+  try {
+    await pyodide.runPythonAsync(codigo, { globals: globales, filename: 'programa.py' });
+  } catch (e) {
+    error = true;
+    escribir('stderr', limpiarTraceback(String((e && e.message) || e)));
+  } finally {
+    globales.destroy();
+  }
+  enviar({ tipo: 'fin', error, recortada, ms: Math.round(performance.now() - inicio) });
+}
+
+// Del traceback quedan solo las líneas del programa, no las internas de Pyodide.
+function limpiarTraceback(texto) {
+  const lineas = texto.trimEnd().split('\n');
+  const i = lineas.findIndex(l => l.includes('File "programa.py"'));
+  if (lineas[0].startsWith('Traceback') && i > 0) return [lineas[0], ...lineas.slice(i)].join('\n') + '\n';
+  return lineas.join('\n') + '\n';
+}
+
+// ── SQL con sql.js (SQLite en WebAssembly), sobre una base nueva en memoria en cada ejecución ──
+let SQL = null;
+async function ejecutarSql(codigo) {
+  if (!SQL) {
+    enviar({ tipo: 'preparando', texto: 'Preparando SQL…' });
+    importScripts(CDN.sql + 'sql-wasm.js');
+    SQL = await initSqlJs({ locateFile: archivo => CDN.sql + archivo });
+  }
+  const db = new SQL.Database();
+  const valor = v => (v instanceof Uint8Array ? '[BLOB de ' + v.length + ' bytes]' : v);
+  enviar({ tipo: 'inicio' });
+  const inicio = performance.now();
+  try {
+    for (const consulta of db.iterateStatements(codigo)) {
+      const columnas = consulta.getColumnNames();
+      const filas = [];
+      let masFilas = false;
+      while (consulta.step()) {
+        if (filas.length === MAX_FILAS) { masFilas = true; break; }
+        filas.push(consulta.get().map(valor));
+      }
+      if (columnas.length) enviar({ tipo: 'tabla', tabla: { columnas, filas, recortada: masFilas } });
+    }
+  } catch (e) {
+    error = true;
+    escribir('stderr', 'Error: ' + String((e && e.message) || e) + '\n');
+  } finally {
+    db.close();
+  }
+  enviar({ tipo: 'fin', error, recortada, ms: Math.round(performance.now() - inicio) });
+}
+
+self.onmessage = async e => {
+  const m = e.data;
+  nuevaEjecucion();
+  try {
+    if (m.tipo === 'js') ejecutarJs(m.codigo, m.conLineas);
+    else if (m.tipo === 'ts') await transpilar(m.codigo);
+    else if (m.tipo === 'py') await ejecutarPython(m.codigo);
+    else if (m.tipo === 'sql') await ejecutarSql(m.codigo);
+  } catch (err) {
+    enviar({ tipo: 'falla', texto: String((err && err.message) || err) });
+  }
+};
+</script>
+
+<script>
+'use strict';
+(() => {
+  // Fuera del sandbox (abierto directamente o embebido con el mismo origen) no ejecuta nada.
+  if (self.origin !== 'null' || window.parent === window) return;
+
+  const LIMITE_MS = 5000; // ejecución
+  const PREPARAR_MS = 90000; // descarga y arranque de un intérprete
+  const FUENTE = URL.createObjectURL(new Blob([document.getElementById('trabajador').textContent], { type: 'text/javascript' }));
+  const motores = {}; // Workers que se conservan entre ejecuciones: Python, SQL y el compilador de TypeScript
+  const colas = {}; // un motor ejecuta un programa a la vez
+  const responder = m => window.parent.postMessage(m, '*');
+
+  const motor = clave => (motores[clave] ||= new Worker(FUENTE));
+  const descartar = clave => { motores[clave]?.terminate(); delete motores[clave]; };
+  const enCola = (clave, tarea) => (colas[clave] = (colas[clave] || Promise.resolve()).then(tarea, tarea));
+  const falloPreparar = texto => ({
+    salida: [{ flujo: 'stderr', texto: texto + '\n' }], error: true, recortada: false, ms: 0, fallo: texto,
+  });
+
+  // Corre un programa en un Worker y junta lo que va imprimiendo. Si no termina en 5 s, lo detiene.
+  function correr(id, w, mensaje, clave) {
+    return new Promise(resolver => {
+      const salida = [];
+      const tablas = [];
+      let reloj = setTimeout(() => cortar(false), PREPARAR_MS);
+      const terminar = resultado => {
+        clearTimeout(reloj);
+        w.removeEventListener('message', alMensaje);
+        w.removeEventListener('error', alError);
+        if (!clave) w.terminate();
+        resolver({ salida, tablas, ...resultado });
+      };
+      const cortar = ejecutando => {
+        if (clave) descartar(clave);
+        else w.terminate();
+        if (ejecutando) terminar({ error: true, detenida: true, recortada: false, ms: LIMITE_MS });
+        else terminar(falloPreparar('No se pudo preparar la ejecución a tiempo. Revisa tu conexión e intenta de nuevo.'));
+      };
+      const alMensaje = e => {
+        const m = e.data;
+        if (m.tipo === 'preparando') responder({ tipo: 'estado', id, texto: m.texto });
+        else if (m.tipo === 'inicio') {
+          clearTimeout(reloj);
+          reloj = setTimeout(() => cortar(true), LIMITE_MS);
+          responder({ tipo: 'estado', id, texto: 'Ejecutando…' });
+        } else if (m.tipo === 'salida') {
+          const ultimo = salida[salida.length - 1];
+          if (ultimo && ultimo.flujo === m.flujo) ultimo.texto += m.texto;
+          else salida.push({ flujo: m.flujo, texto: m.texto });
+          responder({ tipo: 'salida', id, flujo: m.flujo, texto: m.texto });
+        } else if (m.tipo === 'tabla') tablas.push(m.tabla);
+        else if (m.tipo === 'fin') terminar({ error: m.error, recortada: m.recortada, ms: m.ms });
+        else if (m.tipo === 'falla') {
+          if (clave) descartar(clave);
+          terminar(falloPreparar('No se pudo preparar la ejecución: ' + m.texto));
+        }
+      };
+      const alError = e => {
+        e.preventDefault();
+        if (clave) descartar(clave);
+        terminar({ salida: [], ...falloPreparar('Falló el entorno de ejecución: ' + (e.message || 'error desconocido')) });
+      };
+      w.addEventListener('message', alMensaje);
+      w.addEventListener('error', alError);
+      w.postMessage(mensaje);
+    });
+  }
+
+  function transpilar(id, codigo) {
+    return enCola('ts', () => new Promise(resolver => {
+      const w = motor('ts');
+      const reloj = setTimeout(() => { descartar('ts'); fin({ falla: 'No se pudo cargar el compilador de TypeScript a tiempo.' }); }, PREPARAR_MS);
+      const fin = r => { clearTimeout(reloj); w.removeEventListener('message', alMensaje); resolver(r); };
+      const alMensaje = e => {
+        const m = e.data;
+        if (m.tipo === 'preparando') responder({ tipo: 'estado', id, texto: m.texto });
+        else if (m.tipo === 'transpilado') fin(m);
+        else if (m.tipo === 'falla') { descartar('ts'); fin({ falla: 'No se pudo cargar el compilador de TypeScript: ' + m.texto }); }
+      };
+      w.addEventListener('message', alMensaje);
+      w.postMessage({ tipo: 'ts', codigo });
+    }));
+  }
+
+  async function ejecutar(id, lenguaje, codigo) {
+    if (lenguaje === 'javascript') return correr(id, new Worker(FUENTE), { tipo: 'js', codigo, conLineas: true });
+    if (lenguaje === 'typescript') {
+      const t = await transpilar(id, codigo);
+      if (t.falla) return falloPreparar(t.falla);
+      if (t.errores.length) return { salida: [{ flujo: 'stderr', texto: t.errores.join('\n') + '\n' }], error: true, recortada: false, ms: 0 };
+      return correr(id, new Worker(FUENTE), { tipo: 'js', codigo: t.js, conLineas: false });
+    }
+    if (lenguaje === 'python') return enCola('py', () => correr(id, motor('py'), { tipo: 'py', codigo }, 'py'));
+    if (lenguaje === 'sql') return enCola('sql', () => correr(id, motor('sql'), { tipo: 'sql', codigo }, 'sql'));
+    return falloPreparar('Ejecución no disponible para este lenguaje todavía');
+  }
+
+  window.addEventListener('message', e => {
+    if (e.source !== window.parent) return;
+    const m = e.data;
+    if (!m || m.tipo !== 'ejecutar' || typeof m.id !== 'string' || typeof m.lenguaje !== 'string' || typeof m.codigo !== 'string') return;
+    ejecutar(m.id, m.lenguaje, m.codigo).then(resultado => responder({ tipo: 'fin', id: m.id, resultado }));
+  });
+  responder({ tipo: 'listo' });
+})();
+</script>
+</body>
+</html>

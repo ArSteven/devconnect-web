@@ -27,6 +27,11 @@ export function cuentaRegresiva(iso: string, ahora: number): string {
   return `En ${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+/** "2026-10-06T15:30" en hora local, el formato que espera <input type="datetime-local">. */
+export function paraInput(fecha: Date): string {
+  return new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 /** Fecha corta y legible: "Lun 12 oct · 3:00 p. m.", sin que la hora se parta en dos líneas. */
 export function fechaCorta(iso: string): string {
   const f = new Date(iso);

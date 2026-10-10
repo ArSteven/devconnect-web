@@ -7,16 +7,10 @@ import { mensajeDeError } from '../../core/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { Avisos } from '../../core/avisos';
 import { urlSala } from '../../core/jitsi';
-import { SesionVivo } from '../../core/modelos';
-import { Reloj, cuentaRegresiva, fechaCorta } from '../../core/reloj';
+import { Defensa, SesionVivo } from '../../core/modelos';
+import { Reloj, cuentaRegresiva, fechaCorta, paraInput } from '../../core/reloj';
 import { Avatar } from '../../shared/avatar';
 import { Cargando } from '../../shared/cargando';
-
-/** "2026-10-06T15:30" en hora local, el formato que espera <input type="datetime-local">. */
-function paraInput(fecha: Date): string {
-  const local = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-}
 
 @Component({
   selector: 'app-sesiones',
@@ -36,6 +30,8 @@ export class Sesiones implements OnInit {
 
   protected fechaCorta = fechaCorta;
   protected sesiones = signal<SesionVivo[]>([]);
+  /** Defensas en vivo de retos: privadas, solo de la empresa y el estudiante que cita. */
+  protected defensas = signal<Defensa[]>([]);
   protected cargando = signal(true);
   protected error = signal('');
   protected creando = signal(false);
@@ -79,8 +75,12 @@ export class Sesiones implements OnInit {
     return urlSala(s.sala, this.auth.usuario()?.nombre);
   }
 
-  cuenta(s: SesionVivo): string {
+  cuenta(s: { inicia_en: string }): string {
     return cuentaRegresiva(s.inicia_en, this.reloj.ahora()) || 'Debería empezar ya';
+  }
+
+  salaDefensa(d: Defensa): string {
+    return urlSala(d.sala, this.auth.usuario()?.nombre);
   }
 
   crear(): void {
@@ -152,6 +152,7 @@ export class Sesiones implements OnInit {
   }
 
   private cargar(): void {
+    this.api.defensas().subscribe({ next: d => this.defensas.set(d), error: () => {} });
     this.api.sesiones().subscribe({
       next: lista => {
         this.sesiones.set(lista);

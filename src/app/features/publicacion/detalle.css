@@ -20,6 +20,12 @@ h3 { font-size: 18px; }
 .sin-codigo { padding: 18px; color: var(--editor-tenue); font-size: 13px; }
 
 .bloque { display: flex; flex-direction: column; gap: 16px; padding-top: 18px; border-top: 2px solid var(--tinta); }
+.titulo-bloque { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.evolucion[aria-expanded="true"] { background: var(--tinta); color: var(--papel); }
+/* Lo elegido en el árbol se marca un momento; con movimiento reducido el marco igual se ve. */
+.editor, .propuesta { scroll-margin-top: 90px; }
+.editor:focus, .propuesta:focus { outline: none; }
+.resaltada, .resaltada:focus { outline: 4px solid var(--azul); outline-offset: 4px; }
 .aviso { padding: 12px 14px; background: var(--azul-fondo); border: 2px solid var(--azul); border-radius: 4px; font-size: 14px; line-height: 1.6; }
 .vacio-bloque { font-size: 14px; }
 
@@ -39,6 +45,22 @@ h3 { font-size: 18px; }
 .vista button + button { border-left: 2px solid var(--tinta); }
 .vista button.on { background: var(--tinta); color: var(--papel); }
 .decision { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Soluciones de retos: la declaración de uso de IA y la defensa en vivo. */
+.uso-ia { padding: 10px 12px; background: var(--azul-fondo); border-radius: 4px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.uso-ia span { display: block; margin-top: 2px; color: #3D3B36; }
+.defensa { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 2px solid var(--azul); border-radius: 4px; font-size: 14px; line-height: 1.6; }
+.defensa.aprobada { border-color: var(--verde-texto); background: var(--verde-fondo); }
+.defensa .tenue { font-size: 13px; }
+.estado-defensa { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.acciones-defensa { display: flex; flex-wrap: wrap; gap: 8px; }
+.invitar-defensa { align-self: flex-start; }
+.uso-ia-campo { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px 14px 14px; border: 2px solid var(--linea); border-radius: 4px; }
+.uso-ia-campo legend { padding: 0 6px; font-size: 14px; font-weight: 800; }
+.opciones { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.opcion { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; cursor: pointer; }
+.opcion input { width: 18px; height: 18px; accent-color: var(--azul); }
+.listo { color: var(--verde-texto); }
 
 .formulario { padding: clamp(18px, 3vw, 24px); display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 90px; }
 .formulario .tenue { font-size: 13px; line-height: 1.6; }

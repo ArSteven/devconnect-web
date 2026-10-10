@@ -2,8 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import {
-  Candidato, Catalogos, Comentario, DetallePublicacion, EstudianteDestacado, FiltroPublicaciones, FiltroTalento,
-  Portafolio, PerfilEditable, Propuesta, Publicacion, SesionVivo, Suscripcion, TarjetaTalento,
+  Actividad, Candidato, Catalogos, Comentario, Defensa, DetallePublicacion, EstudianteDestacado, FiltroPublicaciones, FiltroTalento,
+  NuevaPropuesta, Portafolio, PerfilEditable, Propuesta, Publicacion, ResultadoEjecucion, SesionVivo, Suscripcion, TarjetaTalento,
 } from './modelos';
 
 /** Agrega solo los parámetros con valor: un filtro vacío no viaja. */
@@ -13,6 +13,19 @@ function parametros(valores: Record<string, string | number | boolean>): HttpPar
     if (valor !== '' && valor !== false) params = params.set(clave, valor);
   }
   return params;
+}
+
+/**
+ * La API desplegada puede ir un paso atrás del frontend. Los campos que llegaron después se
+ * completan aquí: así una versión anterior de la API no rompe la pantalla (sin proponentes, las
+ * tarjetas del feed fallaban al dibujarse y sus enlaces quedaban sin destino).
+ */
+function completarPublicacion<T extends Publicacion>(p: T): T {
+  return { ...p, proponentes: p.proponentes ?? [], total_proponentes: p.total_proponentes ?? p.total_propuestas, mejora: p.mejora ?? null };
+}
+
+function completarPortafolio(p: Portafolio): Portafolio {
+  return { ...p, contacto_oculto: p.contacto_oculto ?? false, totales: { ...p.totales, personas_ayudadas: p.totales.personas_ayudadas ?? 0 } };
 }
 
 /** Un solo lugar para todas las llamadas a la API. El token lo agrega el interceptor. */
@@ -25,7 +38,13 @@ export class Api {
     const params = parametros({ ...filtro, pagina });
     return this.http
       .get<{ publicaciones: Publicacion[] }>(`${this.base}/publicaciones`, { params })
-      .pipe(map(r => r.publicaciones));
+      .pipe(map(r => r.publicaciones.map(completarPublicacion)));
+  }
+
+  /** Las últimas mejoras aceptadas, con los filtros del feed que les aplican. */
+  actividad(filtro: Pick<FiltroPublicaciones, 'lenguaje' | 'tipo' | 'institucion'>): Observable<Actividad[]> {
+    const params = parametros({ lenguaje: filtro.lenguaje, tipo: filtro.tipo, institucion: filtro.institucion });
+    return this.http.get<{ actividad: Actividad[] }>(`${this.base}/actividad`, { params }).pipe(map(r => r.actividad));
   }
 
   crearPublicacion(datos: { titulo: string; descripcion: string; lenguaje: string; codigo: string }): Observable<Publicacion> {
@@ -37,10 +56,12 @@ export class Api {
   }
 
   detalle(id: string): Observable<DetallePublicacion> {
-    return this.http.get<{ publicacion: DetallePublicacion }>(`${this.base}/publicaciones/${id}`).pipe(map(r => r.publicacion));
+    return this.http
+      .get<{ publicacion: DetallePublicacion }>(`${this.base}/publicaciones/${id}`)
+      .pipe(map(r => completarPublicacion(r.publicacion)));
   }
 
-  proponer(publicacionId: string, datos: { codigo: string; explicacion: string }): Observable<Propuesta> {
+  proponer(publicacionId: string, datos: NuevaPropuesta): Observable<Propuesta> {
     return this.http
       .post<{ propuesta: Propuesta }>(`${this.base}/publicaciones/${publicacionId}/propuestas`, datos)
       .pipe(map(r => r.propuesta));
@@ -50,6 +71,29 @@ export class Api {
     return this.http.patch(`${this.base}/propuestas/${propuestaId}`, { estado });
   }
 
+  /** «Pruébalo» en Go: lo ejecuta el Go Playground oficial a través de la API. */
+  ejecutarGo(codigo: string): Observable<ResultadoEjecucion> {
+    return this.http.post<{ resultado: ResultadoEjecucion }>(`${this.base}/ejecutar/go`, { codigo }).pipe(map(r => r.resultado));
+  }
+
+  /** Constancia de que otra persona ejecutó la mejora aceptada y cambió el resultado. */
+  verificar(propuestaId: string): Observable<string> {
+    return this.http.post<{ verificada_en: string }>(`${this.base}/propuestas/${propuestaId}/verificacion`, {}).pipe(map(r => r.verificada_en));
+  }
+
+  invitarDefensa(propuestaId: string, iniciaEn: string): Observable<Defensa> {
+    return this.http.post<{ defensa: Defensa }>(`${this.base}/propuestas/${propuestaId}/defensa`, { inicia_en: iniciaEn }).pipe(map(r => r.defensa));
+  }
+
+  cambiarDefensa(id: string, estado: 'realizada' | 'cancelada', aprobada = false): Observable<Defensa> {
+    return this.http.patch<{ defensa: Defensa }>(`${this.base}/defensas/${id}`, { estado, aprobada }).pipe(map(r => r.defensa));
+  }
+
+  /** Las defensas en vivo de quien pregunta: las que cita (empresa) o a las que la citan (estudiante). */
+  defensas(): Observable<Defensa[]> {
+    return this.http.get<{ defensas: Defensa[] }>(`${this.base}/defensas`).pipe(map(r => r.defensas));
+  }
+
   comentar(publicacionId: string, texto: string): Observable<Comentario> {
     return this.http
       .post<{ comentario: Comentario }>(`${this.base}/publicaciones/${publicacionId}/comentarios`, { texto })
@@ -57,7 +101,9 @@ export class Api {
   }
 
   portafolio(estudianteId: string): Observable<Portafolio> {
-    return this.http.get<{ portafolio: Portafolio }>(`${this.base}/estudiantes/${estudianteId}/portafolio`).pipe(map(r => r.portafolio));
+    return this.http
+      .get<{ portafolio: Portafolio }>(`${this.base}/estudiantes/${estudianteId}/portafolio`)
+      .pipe(map(r => completarPortafolio(r.portafolio)));
   }
 
   actualizarPerfil(datos: PerfilEditable): Observable<unknown> {

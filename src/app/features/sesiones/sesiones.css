@@ -13,6 +13,10 @@ h3 { font-size: 20px; line-height: 1.3; }
 .lista { display: flex; flex-direction: column; gap: 18px; }
 .sesion { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
 .sesion.envivo { box-shadow: 6px 6px 0 var(--verde); border-color: var(--verde-texto); }
+.privada { margin-top: -12px; font-size: 13px; color: var(--tenue); }
+.defensa { box-shadow: 6px 6px 0 var(--azul); }
+.defensa.aprobada { box-shadow: 6px 6px 0 var(--verde); }
+.defensa.cancelada { opacity: .65; box-shadow: 6px 6px 0 var(--linea); }
 .estado { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--tenue); }
 .envivo .estado { color: var(--verde-texto); }
 .cuenta { color: var(--azul); font-variant-numeric: tabular-nums; }

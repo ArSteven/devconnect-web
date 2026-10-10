@@ -3,7 +3,8 @@ import { Component, input } from '@angular/core';
 /**
  * Logo: la D formada por un cursor azul que parpadea (quien escribe) y un paréntesis coral (cierra lo que otro abrió).
  * Con comoLetra, el ícono es la D de "[D]evconnect": el viewBox se recorta al trazo para que mida
- * lo mismo que una mayúscula del texto que lo rodea y se apoye en la línea base.
+ * lo mismo que una mayúscula del texto que lo rodea y se apoye en la línea base. Ahí la barra queda
+ * fija: si parpadeara, por momentos se leería «Ɔevconnect».
  */
 @Component({
   selector: 'app-logo',
@@ -16,8 +17,8 @@ import { Component, input } from '@angular/core';
   `,
   styles: `
     :host { display: inline-flex; }
-    :host(.letra) svg { width: auto; height: .73em; height: 1cap; }
-    .cursor { animation: parpadeo 1s steps(1) infinite; }
+    :host(.letra) svg { width: auto; height: .72em; height: 1cap; }
+    :host(:not(.letra)) .cursor { animation: parpadeo 1s steps(1) infinite; }
   `,
   host: { '[class.letra]': 'comoLetra()' },
 })

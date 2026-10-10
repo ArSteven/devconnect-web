@@ -7,11 +7,12 @@ import { mensajeDeError } from '../../core/api-error';
 import { Avisos } from '../../core/avisos';
 import { LENGUAJES } from '../../core/modelos';
 import { CampoCodigo } from '../../shared/campo-codigo';
+import { PanelEjecucion } from '../../shared/panel-ejecucion';
 import { Tecnologia } from '../../shared/tecnologia';
 
 @Component({
   selector: 'app-publicar',
-  imports: [ReactiveFormsModule, RouterLink, CampoCodigo, Tecnologia],
+  imports: [ReactiveFormsModule, RouterLink, CampoCodigo, Tecnologia, PanelEjecucion],
   template: `
     <section class="contenedor">
       <a routerLink="/feed" class="volver">← Volver al feed</a>
@@ -43,6 +44,8 @@ import { Tecnologia } from '../../shared/tecnologia';
           <textarea formControlName="codigo" rows="14" class="campo-codigo" appCampoCodigo maxlength="20000" aria-describedby="ayuda-tab"></textarea>
           <span class="ayuda" id="ayuda-tab">Tab agrega sangría. Para salir del campo con el teclado, pulsa Esc y luego Tab.</span>
         </label>
+
+        <app-panel-ejecucion titulo="Pruébalo antes de publicar" [codigo]="codigo()" [lenguaje]="lenguaje()" />
 
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
@@ -81,6 +84,7 @@ export class Publicar {
     codigo: ['', [Validators.required, Validators.maxLength(20000)]],
   });
   protected lenguaje = toSignal(this.form.controls.lenguaje.valueChanges, { initialValue: 'go' });
+  protected codigo = toSignal(this.form.controls.codigo.valueChanges, { initialValue: '' });
 
   enviar(): void {
     if (this.form.invalid) {

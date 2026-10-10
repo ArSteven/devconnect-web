@@ -16,6 +16,15 @@ export interface TramoOculto {
 const MAXIMO_CELDAS = 4_000_000;
 
 /**
+ * Si dos versiones de un código son la misma. Solo se ignoran los finales de línea (\r\n o \n) y los
+ * espacios al final de cada línea: cualquier otro cambio, incluida la sangría, cuenta como diferente.
+ */
+export function mismoCodigo(a: string, b: string): boolean {
+  const limpiar = (c: string) => c.replace(/\r\n?/g, '\n').replace(/[ \t]+$/gm, '').replace(/\n+$/, '');
+  return limpiar(a) === limpiar(b);
+}
+
+/**
  * Diff por líneas con la subsecuencia común más larga (LCS). Primero recorta lo que
  * coincide al principio y al final, que en una propuesta típica es casi todo el código.
  */

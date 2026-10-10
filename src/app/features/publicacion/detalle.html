@@ -15,7 +15,7 @@
           <span class="chip chip-reto">Reto de empresa</span>
           <span class="chip" [class.chip-abierta]="!retoCerrado()">{{ retoCerrado() ? 'Cerrado' : 'Cierra ' + faltaParaCerrar().toLowerCase() }}</span>
         } @else {
-          <span class="chip" [class.chip-resuelta]="p.estado === 'resuelta'" [class.chip-abierta]="p.estado === 'abierta'">{{ p.estado === 'resuelta' ? '✓ Resuelta' : 'Abierta' }}</span>
+          <span class="chip" [class.chip-resuelta]="p.estado === 'resuelta'" [class.chip-abierta]="p.estado === 'abierta'">{{ p.estado === 'resuelta' ? '✓ Mejorado' : 'Necesita mejoras' }}</span>
         }
         <span class="chip"><app-tecnologia [nombre]="p.lenguaje" [tamano]="16" /></span>
       </div>
@@ -42,7 +42,7 @@
       }
     </header>
 
-    <div class="editor">
+    <div class="editor" id="codigo-original" tabindex="-1" [class.resaltada]="resaltada() === 'original'">
       <div class="barra">
         <span>{{ p.tipo === 'reto' ? 'Código inicial' : 'Código' }} · {{ nombreLenguaje(p.lenguaje) }}</span>
         @if (p.codigo) { <button type="button" class="copiar" (click)="copiar(p.codigo)">Copiar</button> }
@@ -54,8 +54,23 @@
       }
     </div>
 
+    @if (mejoraAceptada(); as m) {
+      <app-pruebalo [publicacion]="p" [mejora]="m" />
+    }
+
     <section class="bloque">
-      <h2>{{ p.tipo === 'reto' ? 'Soluciones' : 'Propuestas de mejora' }} ({{ p.propuestas.length }})</h2>
+      <div class="titulo-bloque">
+        <h2>{{ p.tipo === 'reto' ? 'Soluciones' : 'Propuestas de mejora' }} ({{ p.propuestas.length }})</h2>
+        @if (p.propuestas.length) {
+          <button type="button" class="btn btn-secundario btn-pequeno evolucion" aria-controls="evolucion"
+                  [attr.aria-expanded]="verEvolucion()" (click)="verEvolucion.set(!verEvolucion())">
+            {{ verEvolucion() ? 'Ocultar evolución' : 'Evolución' }}
+          </button>
+        }
+      </div>
+      @if (verEvolucion() && arbol(); as raiz) {
+        <app-arbol-evolucion id="evolucion" [raiz]="raiz" [esReto]="p.tipo === 'reto'" (elegir)="irA($event)" />
+      }
       @if (esAutor() && pendientes() > 0) {
         <p class="aviso">
           {{ p.tipo === 'reto'
@@ -65,7 +80,8 @@
       }
 
       @for (pr of p.propuestas; track pr.id; let i = $index) {
-        <article class="card propuesta aparecer" [style.--i]="i" [class.aceptada]="pr.estado === 'aceptada'" [class.rechazada]="pr.estado === 'rechazada'">
+        <article class="card propuesta aparecer" [id]="'propuesta-' + pr.id" tabindex="-1" [style.--i]="i"
+                 [class.aceptada]="pr.estado === 'aceptada'" [class.rechazada]="pr.estado === 'rechazada'" [class.resaltada]="resaltada() === pr.id">
           <header class="meta">
             <app-avatar [nombre]="pr.autor_nombre" [github]="pr.autor_github" [tamano]="34" />
             <div class="quien">
@@ -77,6 +93,12 @@
             </span>
           </header>
           <p class="explicacion texto-libre">{{ pr.explicacion }}</p>
+          @if (pr.uso_ia) {
+            <p class="uso-ia">
+              <strong>¿Usó inteligencia artificial?</strong> {{ etiquetaUsoIA(pr.uso_ia) }}
+              @if (pr.uso_ia_detalle) { <span class="texto-libre">«{{ pr.uso_ia_detalle }}»</span> }
+            </p>
+          }
 
           <div class="vista">
             <button type="button" [class.on]="!verCompleto().has(pr.id)" [attr.aria-pressed]="!verCompleto().has(pr.id)" (click)="verCompleto().has(pr.id) && alternarVista(pr.id)">Cambios</button>
@@ -97,6 +119,56 @@
             </div>
             @if (errorDecision()?.id === pr.id) {
               <p class="error" role="alert">{{ errorDecision()!.texto }}</p>
+            }
+          }
+
+          <!-- Defensa en vivo: solo la ven la empresa dueña del reto y quien envió la solución. -->
+          @if (p.tipo === 'reto') {
+            @if (pr.defensa; as d) {
+              <div class="defensa" [class.aprobada]="d.aprobada">
+                <p class="estado-defensa">
+                  <strong>{{ d.aprobada ? '✓ Defensa aprobada' : d.estado === 'realizada' ? 'Defensa realizada' : 'Defensa en vivo' }}</strong>
+                  <span>{{ fechaCorta(d.inicia_en) }} · {{ d.duracion_min }} min</span>
+                </p>
+                @if (esAutor()) {
+                  @if (d.estado === 'invitada') {
+                    <p class="tenue">Sala privada de Jitsi: solo la ven tu empresa y {{ pr.autor_nombre }}.</p>
+                  }
+                  <div class="acciones-defensa">
+                    @if (d.estado === 'invitada') {
+                      <a class="btn btn-primario btn-pequeno" [href]="sala(d)" target="_blank" rel="noopener">Entrar a la sala ↗</a>
+                      <button class="btn btn-secundario btn-pequeno" type="button" [disabled]="ocupadaDefensa() === pr.id" (click)="cambiarDefensa(pr, d, 'realizada')">Marcar como realizada</button>
+                      <button class="btn btn-secundario btn-pequeno" type="button" [disabled]="ocupadaDefensa() === pr.id" (click)="cambiarDefensa(pr, d, 'realizada', true)">Defensa aprobada</button>
+                      <button class="btn btn-peligro btn-pequeno" type="button" [disabled]="ocupadaDefensa() === pr.id" (click)="cambiarDefensa(pr, d, 'cancelada')">Cancelar</button>
+                    } @else if (!d.aprobada) {
+                      <button class="btn btn-secundario btn-pequeno" type="button" [disabled]="ocupadaDefensa() === pr.id" (click)="cambiarDefensa(pr, d, 'realizada', true)">Defensa aprobada</button>
+                    }
+                  </div>
+                } @else if (d.estado === 'invitada') {
+                  <p>{{ p.autor_nombre }} te invitó a defender tu solución en vivo. Es una sala privada de Jitsi de {{ d.duracion_min }} minutos.</p>
+                  <a class="btn btn-primario btn-pequeno" [href]="sala(d)" target="_blank" rel="noopener">Entrar a la sala ↗</a>
+                } @else if (d.aprobada) {
+                  <p>{{ p.autor_nombre }} aprobó tu defensa{{ pr.estado === 'aceptada' ? ': aparece en tu perfil junto al reto.' : '.' }}</p>
+                }
+              </div>
+            } @else if (esAutor() && pr.estado !== 'rechazada') {
+              @if (invitando() === pr.id) {
+                <div class="defensa">
+                  <label class="campo">
+                    Fecha y hora de la defensa (15 minutos)
+                    <input type="datetime-local" [min]="minDefensa" [max]="maxDefensa" [value]="fechaDefensa()" (input)="fechaDefensa.set($any($event.target).value)">
+                    <span class="ayuda">Se crea una sala privada de Jitsi que solo ven tu empresa y {{ pr.autor_nombre }}. Le avisamos con la fecha y la hora.</span>
+                  </label>
+                  <div class="acciones-defensa">
+                    <button class="btn btn-primario btn-pequeno" type="button" [disabled]="ocupadaDefensa() === pr.id" (click)="invitarDefensa(pr)">
+                      {{ ocupadaDefensa() === pr.id ? 'Enviando…' : 'Enviar invitación' }}
+                    </button>
+                    <button class="btn btn-secundario btn-pequeno" type="button" (click)="invitando.set(null)">Cancelar</button>
+                  </div>
+                </div>
+              } @else {
+                <button class="btn btn-secundario btn-pequeno invitar-defensa" type="button" (click)="abrirInvitacion(pr)">Invitar a defensa en vivo</button>
+              }
             }
           }
         </article>
@@ -129,10 +201,36 @@
           @if (verMisCambios()) {
             <app-diff-codigo [original]="p.codigo" [propuesta]="codigoPropuesta()" [lenguaje]="p.lenguaje" />
           }
-          <label class="campo">
-            Explica qué cambiaste y por qué
-            <textarea formControlName="explicacion" rows="4" maxlength="2000" placeholder="Ej.: Main terminaba antes que la goroutine. Agregué un WaitGroup para esperarla."></textarea>
-          </label>
+          <app-panel-ejecucion [titulo]="p.tipo === 'reto' ? 'Prueba tu solución antes de enviarla' : 'Prueba tu versión antes de enviarla'"
+                               [codigo]="codigoPropuesta()" [lenguaje]="p.lenguaje" />
+          @if (p.tipo === 'reto') {
+            <label class="campo">
+              Explica tus decisiones
+              <textarea formControlName="explicacion" rows="5" maxlength="2000" aria-describedby="guia-explicacion"></textarea>
+              <span class="ayuda" id="guia-explicacion">
+                Qué cambiaste, qué alternativas descartaste y qué harías con más tiempo. Mínimo {{ minExplicacionReto }} caracteres:
+                <strong [class.listo]="largoExplicacion() >= minExplicacionReto">{{ largoExplicacion() }}/{{ minExplicacionReto }}</strong>
+              </span>
+            </label>
+            <fieldset class="uso-ia-campo">
+              <legend>¿Usaste inteligencia artificial?</legend>
+              <div class="opciones">
+                @for (u of usosIA; track u.valor) {
+                  <label class="opcion"><input type="radio" formControlName="uso_ia" [value]="u.valor"> {{ u.etiqueta }}</label>
+                }
+              </div>
+              <label class="campo">
+                ¿Cómo la usaste? (opcional)
+                <textarea formControlName="uso_ia_detalle" rows="2" maxlength="500" placeholder="Ej.: Le pregunté cómo funciona reduce y escribí la solución yo."></textarea>
+              </label>
+              <span class="ayuda">La empresa ve tu respuesta junto a tu solución. Puede citarte a defenderla en vivo.</span>
+            </fieldset>
+          } @else {
+            <label class="campo">
+              Explica qué cambiaste y por qué
+              <textarea formControlName="explicacion" rows="4" maxlength="2000" placeholder="Ej.: Main terminaba antes que la goroutine. Agregué un WaitGroup para esperarla."></textarea>
+            </label>
+          }
           @if (errorPropuesta()) {
             <p class="error" role="alert">{{ errorPropuesta() }}</p>
           }

@@ -19,6 +19,20 @@ export function fotoGithub(url: string | null | undefined, tamano: number): stri
   return usuario ? `https://github.com/${usuario}.png?size=${Math.min(460, Math.round(tamano * 2))}` : null;
 }
 
+/**
+ * "@usuario" para mostrar en el feed. DevConnect no tiene nombres de usuario: se usa el de
+ * GitHub si la persona lo enlazó y, si no, su nombre: "Laura Díaz Pérez" -> "@laura_diaz".
+ */
+export function alias(nombre: string, github?: string | null): string {
+  const usuario = usuarioGithub(github);
+  if (usuario) return `@${usuario}`;
+  const base = nombre
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().split(/\s+/).filter(Boolean).slice(0, 2).join('_')
+    .replace(/[^a-z0-9_]/g, '');
+  return `@${base || 'estudiante'}`;
+}
+
 /** Iniciales para el avatar: "Laura Díaz Pérez" -> "LD". */
 export function iniciales(nombre: string): string {
   return nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('') || '?';

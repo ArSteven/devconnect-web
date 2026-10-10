@@ -19,6 +19,41 @@ export interface Publicacion {
   total_propuestas: number;
   total_comentarios: number;
   creado_en: string;
+  total_proponentes: number; // personas distintas que propusieron mejoras
+  proponentes: Persona[]; // las primeras cuatro, para los avatares
+  mejora: MejoraAceptada | null; // la mejora aceptada más reciente (solo en el feed)
+}
+
+/** Lo mínimo para mostrar a alguien: su avatar y su nombre. */
+export interface Persona {
+  id: string;
+  nombre: string;
+  github_url: string;
+}
+
+/** Tramo del código original y del mejorado alrededor de un cambio: el navegador hace el diff. */
+export interface Ventana {
+  original: string;
+  codigo: string; // la versión mejorada
+  desde_linea: number; // número de la primera línea de los dos tramos
+  total_lineas: number; // líneas de la versión mejorada completa
+}
+
+export interface MejoraAceptada extends Ventana {
+  autor: Persona;
+}
+
+/** Una mejora aceptada contada en el feed: quién mejoró el código de quién. */
+export interface Actividad {
+  propuesta_id: string;
+  publicacion_id: string;
+  titulo: string;
+  lenguaje: string;
+  tipo: TipoPublicacion;
+  autor: Persona; // autor de la publicación (en un reto, la empresa)
+  contribuyente: Persona;
+  aceptada_en: string;
+  cambio: Ventana;
 }
 
 export interface Propuesta {
@@ -31,6 +66,68 @@ export interface Propuesta {
   explicacion: string;
   estado: 'pendiente' | 'aceptada' | 'rechazada';
   creado_en: string;
+  verificada_en?: string | null; // «Pruébalo»: otra persona la ejecutó y cambió el resultado
+  // Solo en soluciones de retos, y solo para la empresa dueña del reto y quien envió la solución.
+  uso_ia?: UsoIA;
+  uso_ia_detalle?: string;
+  defensa?: Defensa;
+}
+
+/** Lo que se envía al proponer. En un reto, la declaración de uso de IA es obligatoria. */
+export interface NuevaPropuesta {
+  codigo: string;
+  explicacion: string;
+  uso_ia?: UsoIA;
+  uso_ia_detalle?: string;
+}
+
+export type UsoIA = 'no' | 'consulta' | 'codigo';
+
+export const USOS_IA: { valor: UsoIA; etiqueta: string }[] = [
+  { valor: 'no', etiqueta: 'No' },
+  { valor: 'consulta', etiqueta: 'Sí, para consultar dudas' },
+  { valor: 'codigo', etiqueta: 'Sí, para generar parte del código' },
+];
+
+/** Defensa en vivo: 15 minutos en una sala privada de Jitsi entre la empresa del reto y quien lo resolvió. */
+export interface Defensa {
+  id: string;
+  propuesta_id: string;
+  publicacion_id: string;
+  titulo: string; // el reto
+  empresa_id: string;
+  empresa_nombre: string;
+  estudiante_id: string;
+  estudiante_nombre: string;
+  estudiante_github: string;
+  inicia_en: string;
+  duracion_min: number;
+  sala: string;
+  estado: 'invitada' | 'realizada' | 'cancelada';
+  aprobada: boolean;
+}
+
+/** Un tramo de lo que imprimió un programa. «aviso» es lo que señala go vet: no impide que corra. */
+export interface SalidaEjecucion {
+  flujo: 'stdout' | 'stderr' | 'aviso';
+  texto: string;
+}
+
+/** El resultado de cada SELECT en «Pruébalo» con SQL. */
+export interface TablaSql {
+  columnas: string[];
+  filas: (string | number | null)[][];
+  recortada: boolean; // tenía más filas de las que se muestran
+}
+
+export interface ResultadoEjecucion {
+  salida: SalidaEjecucion[];
+  tablas?: TablaSql[];
+  error: boolean; // no compiló o terminó con un error
+  recortada: boolean; // la salida pasaba de 10.000 caracteres
+  detenida?: boolean; // pasó el tiempo límite y se detuvo
+  fallo?: string; // no llegó a ejecutarse (sin red, sin intérprete, límite de ejecuciones): no es un error del programa
+  ms: number;
 }
 
 export interface Comentario {
@@ -148,6 +245,8 @@ export interface Destacado {
   es_reto: boolean;
   explicacion: string;
   fecha: string;
+  verificada?: boolean; // «Mejora verificada por ejecución»
+  defensa_aprobada?: boolean; // la empresa del reto aprobó su defensa en vivo
 }
 
 export interface Portafolio {
@@ -158,6 +257,7 @@ export interface Portafolio {
     mejoras_aportadas: number;
     mejoras_recibidas: number;
     colaboradores: number;
+    personas_ayudadas: number; // autores distintos cuyo código mejoró
     sesiones: number;
     retos_resueltos: number;
   };

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -48,6 +48,9 @@ export class Login {
   private auth = inject(AuthService);
   private router = inject(Router);
 
+  /** Viene de la URL (/login?volver=/portafolio/…): adónde iba antes de que se le pidiera iniciar sesión. */
+  readonly volver = input<string>();
+
   protected enviando = signal(false);
   protected error = signal('');
 
@@ -64,8 +67,11 @@ export class Login {
     this.enviando.set(true);
     this.error.set('');
     const { correo, contrasena } = this.form.getRawValue();
+    // Solo rutas internas ("/algo", no "//otro-sitio"): el parámetro no puede llevar fuera de DevConnect.
+    const volver = this.volver();
+    const destino = volver && /^\/(?![/\\])/.test(volver) ? volver : null;
     this.auth.login(correo, contrasena).subscribe({
-      next: () => this.router.navigateByUrl(this.auth.rutaInicio()),
+      next: () => this.router.navigateByUrl(destino ?? this.auth.rutaInicio()),
       error: err => {
         this.error.set(mensajeDeError(err));
         this.enviando.set(false);

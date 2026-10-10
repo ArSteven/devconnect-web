@@ -11,6 +11,7 @@ import { tecnologia } from '../../core/tecnologias';
 import { Avatar } from '../../shared/avatar';
 import { Cargando } from '../../shared/cargando';
 import { Tecnologia } from '../../shared/tecnologia';
+import { CompartirTarjeta } from './compartir-tarjeta';
 import { EditarPerfil } from './editar-perfil';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -27,7 +28,7 @@ interface Aptitud {
  */
 @Component({
   selector: 'app-portafolio',
-  imports: [RouterLink, EditarPerfil, Avatar, Tecnologia, Cargando],
+  imports: [RouterLink, EditarPerfil, CompartirTarjeta, Avatar, Tecnologia, Cargando],
   templateUrl: './portafolio.html',
   styleUrl: './portafolio.css',
 })
@@ -48,6 +49,8 @@ export class Portafolio {
   protected editando = signal(false);
   protected verTodo = signal(false);
   protected guardando = signal(false);
+  /** El modal de la tarjeta de talento está abierto (solo el dueño del perfil lo ve). */
+  protected compartiendo = signal(false);
 
   protected esPropio = computed(() => this.auth.usuario()?.id === this.id());
   protected esEmpresa = computed(() => this.auth.usuario()?.rol === 'empresa');

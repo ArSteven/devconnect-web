@@ -40,11 +40,7 @@ export const routes: Routes = [
     canActivate: [authGuard, rolGuard('empresa')],
     loadComponent: () => import('./features/empresas/candidatos').then(m => m.Candidatos),
   },
-  {
-    path: 'planes',
-    title: 'Planes · DevConnect',
-    canActivate: [authGuard, rolGuard('empresa')],
-    loadComponent: () => import('./features/empresas/planes').then(m => m.Planes),
-  },
+  // Abierta a cualquier sesión: a un estudiante le cuenta que para él es gratis.
+  { path: 'planes', title: 'Planes · DevConnect', canActivate: [authGuard], loadComponent: () => import('./features/empresas/planes').then(m => m.Planes) },
   { path: '**', redirectTo: '' },
 ];

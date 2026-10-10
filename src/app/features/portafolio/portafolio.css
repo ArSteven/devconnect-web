@@ -48,6 +48,8 @@ h3 { font-size: 14px; letter-spacing: 0; }
 .aporte.reto { border: 2px solid var(--tinta); box-shadow: 4px 4px 0 var(--coral); }
 .aporte .meta { display: flex; justify-content: space-between; align-items: center; }
 .aporte .chip { align-self: flex-start; white-space: normal; }
+.sellos { display: flex; flex-wrap: wrap; gap: 6px; }
+.sello-verde { border-color: var(--verde-texto); background: var(--verde-fondo); color: var(--verde-texto); }
 .aporte strong { font-size: 14px; line-height: 1.4; }
 .explicacion { font-size: 13px; line-height: 1.6; color: #3D3B36; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .ver { margin-top: auto; font-size: 13px; font-weight: 700; color: var(--azul); }

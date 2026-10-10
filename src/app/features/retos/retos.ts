@@ -6,15 +6,11 @@ import { mensajeDeError } from '../../core/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { Avisos } from '../../core/avisos';
 import { LENGUAJES, Publicacion, Suscripcion, hace } from '../../core/modelos';
-import { Reloj, cuentaRegresiva, fechaCorta } from '../../core/reloj';
+import { Reloj, cuentaRegresiva, fechaCorta, paraInput } from '../../core/reloj';
 import { Avatar } from '../../shared/avatar';
 import { CampoCodigo } from '../../shared/campo-codigo';
 import { Cargando } from '../../shared/cargando';
 import { Tecnologia } from '../../shared/tecnologia';
-
-function paraInput(fecha: Date): string {
-  return new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
-}
 
 /** Retos técnicos: las empresas con suscripción los publican y los estudiantes envían soluciones. */
 @Component({

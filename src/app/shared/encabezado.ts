@@ -86,7 +86,8 @@ interface Enlace {
   styles: `
     :host {
       position: sticky; top: 0; z-index: 40; display: block;
-      background: color-mix(in srgb, var(--papel) 92%, transparent); backdrop-filter: blur(6px);
+      /* Fondo sólido: al desplazarse, el contenido no se ve por detrás. */
+      background: var(--papel);
       border-bottom: 2px solid var(--tinta);
     }
     header {
