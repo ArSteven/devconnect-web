@@ -177,8 +177,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidd
     </div>
 
     <div class="meta-line">
-      <span><b>12</b> preguntas</span>
-      <span><b>3</b> minutos</span>
+      <span><b>15</b> preguntas</span>
+      <span><b>4</b> minutos</span>
       <span>Anónima</span>
       <span>Uso académico</span>
     </div>
@@ -300,40 +300,47 @@ function pintar(){
 pintar();
 
 /* ═══ PREGUNTAS ═══
-   Preguntas directas: si le gustó, si le sirvió y si aprendió, en general y por
-   función (mejoras recibidas, proponer mejoras, sesiones en vivo, retos).
-   Cada función incluye "No lo usé" para no forzar opiniones. */
+   Preguntas directas, en cinco bloques:
+   1. Perfil.  2. Experiencia general y facilidad de uso (2 preguntas).
+   3. Colaboración: comodidad (comparable con la línea base de 3,32 del estudio de
+      mercado) e interacción con compañeros.
+   4. Aprendizaje (de dónde aprendió) y valor de cada función ("No la usé" no cuenta).
+   5. Motivación, continuidad, recomendación (NPS) y comentario abierto. */
 const Q=[
   {key:"semestre",tipo:"opcion",q:"¿En qué semestre estás?",
    op:["1.º a 3.er semestre","4.º a 6.º semestre","7.º semestre o más","Ya terminé"]},
 
   {key:"gusto",tipo:"escala",sub:"1 = No me gustó · 5 = Me encantó",izq:"NO ME GUSTÓ",der:"ME ENCANTÓ",
    q:"¿Te gustó DevConnect?"},
+  {key:"facil",tipo:"escala",sub:"1 = Nada fácil · 5 = Muy fácil",izq:"NADA FÁCIL",der:"MUY FÁCIL",
+   q:"¿Fue fácil usar DevConnect?"},
+  {key:"sin_ayuda",tipo:"opcion",q:"¿Pudiste hacer lo que querías sin que nadie te explicara?",
+   op:["Sí, todo","Casi todo","Necesité ayuda en varias cosas"]},
 
-  {key:"aprendio",tipo:"opcion",q:"¿Aprendiste algo nuevo usando DevConnect?",
-   op:["Sí, mucho","Sí, algo","No"]},
+  {key:"comodidad_ayuda",tipo:"escala",sub:"1 = Nada cómodo · 5 = Muy cómodo",izq:"NADA CÓMODO",der:"MUY CÓMODO",
+   q:"¿Qué tan cómodo te sentiste mostrando tu código para que otros lo mejoraran?"},
+  {key:"interaccion",tipo:"opcion",q:"¿Con cuántos compañeros interactuaste en DevConnect?",
+   sub:"Mejoras, comentarios, retos o sesiones en vivo",
+   op:["Con ninguno","Con 1 o 2","Con 3 a 5","Con más de 5"]},
+
+  {key:"aprendio_de",tipo:"multi",q:"¿Con qué aprendiste algo nuevo?",
+   sub:"Marca todo lo que aplique",
+   op:["Con las mejoras que me propusieron","Viendo el código de otros","Proponiendo mejoras a otros",
+       "Con los retos","En las sesiones en vivo","No aprendí nada nuevo"]},
 
   {key:"mejoras_recibidas",tipo:"opcion",q:"¿Te sirvieron las mejoras que te propusieron a tu código?",
    op:["Sí, mucho","Más o menos","No","Nadie me propuso mejoras"]},
-
   {key:"proponer",tipo:"opcion",q:"¿Te gustó proponer mejoras al código de otros?",
    op:["Sí","Más o menos","No","No propuse ninguna"]},
-
   {key:"en_vivo",tipo:"opcion",q:"¿Te gustaron las sesiones en vivo?",
    op:["Sí","Más o menos","No","No entré a ninguna"]},
-
   {key:"retos",tipo:"opcion",q:"¿Te sirvieron los retos para practicar?",
    op:["Sí","Más o menos","No","No hice ninguno"]},
 
-  {key:"facil",tipo:"escala",sub:"1 = Nada fácil · 5 = Muy fácil",izq:"NADA FÁCIL",der:"MUY FÁCIL",
-   q:"¿Fue fácil usar DevConnect?"},
-
   {key:"ganas",tipo:"opcion",q:"¿Te dio más ganas de programar?",
    op:["Sí","Igual que antes","No"]},
-
   {key:"continuidad",tipo:"opcion",q:"¿Usarías DevConnect con frecuencia?",
    op:["Sí","Tal vez","No"]},
-
   {key:"nps",tipo:"escala",min:0,max:10,izq:"NADA PROBABLE",der:"MUY PROBABLE",
    q:"¿Qué tan probable es que se lo recomiendes a un compañero?",sub:"0 = nada probable · 10 = muy probable"},
 
