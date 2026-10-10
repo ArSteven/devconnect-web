@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DevConnect — Prueba piloto con estudiantes</title>
+<link rel="icon" type="image/png" href="uts-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --bg:#0C0E0B; --ink:#EDEBE3; --dim:#7E8578; --faint:#4A5046;
+  --uts:#A2C617; --uts-2:#C9E85A;
+  --edge:rgba(237,235,227,.13);
+  --serif:'Instrument Serif',Georgia,serif; --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased}
+#net{position:fixed;inset:0;z-index:0;opacity:0}
+#vig{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 76% 60% at 50% 46%,transparent 0%,rgba(12,14,11,.6) 72%,rgba(12,14,11,.94) 100%)}
+
+.screen{position:fixed;inset:0;z-index:2;display:none;overflow-y:auto;padding:0 22px}
+.screen.on{display:flex}
+.inner{width:100%;max-width:600px;margin:auto;padding:92px 0 64px}
+
+#rule{position:fixed;top:0;left:0;right:0;height:1px;background:rgba(237,235,227,.09);z-index:5}
+#rule i{display:block;height:1px;width:0;background:var(--uts)}
+#count{position:fixed;top:22px;right:24px;z-index:5;font-size:11px;color:var(--faint);letter-spacing:.14em}
+#mark{position:fixed;top:18px;left:24px;z-index:5;display:none;align-items:center;gap:10px}
+#mark img{height:32px;width:auto;opacity:.75}
+#mark .fb{font-family:var(--serif);font-size:16px;color:var(--uts)}
+#mark span{font-size:10px;color:var(--faint);letter-spacing:.1em}
+
+.eyebrow{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);
+  display:flex;align-items:center;gap:14px;margin-bottom:48px}
+.eyebrow img{height:56px;width:auto}
+.eyebrow .fb{font-family:var(--serif);font-size:21px;color:var(--uts);letter-spacing:0}
+.eyebrow .ln{flex:1;height:1px;background:var(--edge)}
+
+.saludo{font-family:var(--serif);font-size:clamp(34px,5.6vw,52px);line-height:1.08;
+  letter-spacing:-.015em;margin-bottom:30px}
+.nota{font-family:var(--serif);font-size:clamp(18px,2.4vw,22px);line-height:1.6;
+  color:var(--ink);margin-bottom:18px;max-width:42ch}
+.nota.soft{color:var(--dim)}
+
+.prueba{margin:30px 0 4px;padding:18px 20px;border:1px solid var(--edge);border-left:2px solid var(--uts);
+  font-size:12.5px;line-height:1.8;color:var(--dim)}
+.prueba b{color:var(--ink);font-weight:500}
+.prueba a{color:var(--uts-2);word-break:break-all}
+
+.meta-line{display:flex;flex-wrap:wrap;gap:22px;margin:32px 0 32px;padding-top:22px;
+  border-top:1px solid var(--edge);font-size:11px;color:var(--faint);letter-spacing:.1em}
+.meta-line b{color:var(--dim);font-weight:400}
+
+.go{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+  background:none;color:var(--ink);border:1px solid var(--uts);border-radius:2px;
+  padding:17px 34px;cursor:pointer;position:relative;overflow:hidden;transition:color .3s}
+.go::after{content:'';position:absolute;inset:0;background:var(--uts);transform:scaleX(0);
+  transform-origin:left;transition:transform .38s cubic-bezier(.6,0,.2,1)}
+.go span{position:relative;z-index:2}
+.go:hover{color:#0C0E0B}
+.go:hover::after{transform:scaleX(1)}
+.pie{font-size:10.5px;color:var(--faint);line-height:2;margin-top:44px;padding-top:22px;
+  border-top:1px solid var(--edge)}
+
+.qmeta{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--uts);margin-bottom:20px}
+.q{font-family:var(--serif);font-size:clamp(26px,4.2vw,38px);line-height:1.16;
+  letter-spacing:-.012em;margin-bottom:12px}
+.q .w{display:inline-block}
+.qsub{font-size:11.5px;color:var(--faint);margin-bottom:28px;min-height:15px;letter-spacing:.04em}
+
+.opts{display:flex;flex-direction:column;gap:1px;background:var(--edge);border:1px solid var(--edge)}
+.opt{display:flex;align-items:center;gap:16px;text-align:left;width:100%;background:var(--bg);
+  padding:17px 20px;cursor:pointer;color:var(--ink);font-family:var(--mono);font-size:14px;
+  transition:background .16s;position:relative;border:0}
+.opt:hover{background:rgba(162,198,23,.07)}
+.opt.sel{background:rgba(162,198,23,.13)}
+.opt .n{font-size:10.5px;color:var(--faint);flex-shrink:0;width:14px;letter-spacing:.08em}
+.opt.sel .n{color:var(--uts)}
+.opt .bx{width:15px;height:15px;border:1px solid var(--faint);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:#0C0E0B;transition:.16s}
+.opt.sel .bx{background:var(--uts);border-color:var(--uts)}
+.opt .tx{flex:1;line-height:1.4}
+
+.scale{display:flex;gap:1px;background:var(--edge);border:1px solid var(--edge)}
+.sc{flex:1;height:70px;background:var(--bg);cursor:pointer;color:var(--faint);border:0;
+  font-family:var(--serif);font-size:24px;display:flex;align-items:center;justify-content:center;
+  transition:background .16s,color .16s}
+.sc:hover{background:rgba(162,198,23,.07);color:var(--ink)}
+.sc.sel{background:var(--uts);color:#0C0E0B}
+.scale.ancha .sc{font-size:18px;height:58px}
+@media(max-width:640px){.scale.ancha{flex-wrap:wrap}.scale.ancha .sc{flex:1 0 16%;height:52px}}
+.slbl{display:flex;justify-content:space-between;margin-top:11px;font-size:10.5px;
+  color:var(--faint);letter-spacing:.1em}
+
+.ta{width:100%;background:var(--bg);border:1px solid var(--edge);padding:17px 20px;
+  color:var(--ink);font-family:var(--mono);font-size:13.5px;line-height:1.7;resize:none;min-height:120px}
+.ta:focus{outline:none;border-color:var(--uts)}
+.ta::placeholder{color:var(--faint)}
+.pitch{font-family:var(--serif);font-size:clamp(18px,2.4vw,22px);line-height:1.62;color:var(--dim)}
+.pitch b{color:var(--ink);font-weight:400;font-style:italic}
+.pitch a{color:var(--uts-2)}
+
+.nav{display:flex;align-items:center;gap:20px;margin-top:30px}
+.btn{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  cursor:pointer;padding:15px 30px;border:1px solid var(--uts);background:var(--uts);
+  color:#0C0E0B;border-radius:2px;transition:opacity .18s}
+.btn:disabled{opacity:.22;cursor:not-allowed}
+.btn.gh{background:none;color:var(--faint);border-color:var(--edge);padding:15px 20px}
+.btn.gh:hover{color:var(--ink);border-color:var(--dim)}
+.kbd{font-size:10.5px;color:var(--faint);letter-spacing:.1em}
+
+.dmark{font-size:10.5px;letter-spacing:.2em;color:var(--uts);margin-bottom:24px}
+.dh{font-family:var(--serif);font-size:clamp(32px,5.2vw,46px);line-height:1.1;
+  letter-spacing:-.015em;margin-bottom:18px}
+.dp{font-family:var(--serif);font-size:19px;line-height:1.6;color:var(--dim);margin-bottom:30px}
+.inp{width:100%;background:var(--bg);border:1px solid var(--edge);padding:16px 20px;
+  color:var(--ink);font-family:var(--mono);font-size:13.5px;margin-bottom:10px}
+.inp:focus{outline:none;border-color:var(--uts)}
+.legal{font-size:10.5px;color:var(--faint);line-height:2;margin-top:26px;padding-top:20px;
+  border-top:1px solid var(--edge)}
+
+@media(max-width:640px){
+  .inner{padding:76px 0 48px}
+  .eyebrow{margin-bottom:34px}
+  .opt{padding:16px;font-size:13.5px}
+  .sc{height:62px;font-size:21px}
+  .nav{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 36%);
+    padding:20px 0 10px;margin-top:24px;gap:12px}
+  .btn{flex:1;text-align:center;padding:16px 12px}
+  .kbd{display:none}
+  #count{top:16px;right:18px} #mark{top:14px;left:18px}
+}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<canvas id="net"></canvas>
+<div id="vig"></div>
+<div id="rule"><i id="rulei"></i></div>
+<div id="count"></div>
+
+<div id="mark">
+  <img src="uts-logo.png" alt="UTS" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+  <div class="fb" style="display:none">uts</div>
+  <span>TRABAJO DE GRADO</span>
+</div>
+
+<!-- PORTADA -->
+<section class="screen on" id="s-intro">
+  <div class="inner">
+    <div class="eyebrow">
+      <img src="uts-logo.png" alt="Unidades Tecnológicas de Santander"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="fb" style="display:none">uts</div>
+      <span class="ln"></span>
+      <span>2026</span>
+    </div>
+
+    <h1 class="saludo">Gracias por probar<br>DevConnect.</h1>
+
+    <p class="nota">Esta encuesta es la evaluación de la prueba piloto. Respóndela después de usar la plataforma: tu experiencia real es lo que necesito medir.</p>
+    <p class="nota soft">No hay respuestas buenas ni malas. Si algo te pareció confuso o no funcionó, dilo tal cual: eso es lo que más ayuda.</p>
+
+    <div class="prueba">
+      <b>¿Aún no la has usado?</b> Entra, crea tu cuenta de estudiante e intenta: completar tu perfil, publicar un código (o comentar uno) y proponerle una mejora a alguien.<br>
+      <a href="https://devconnect-web-mauve.vercel.app/registro" target="_blank" rel="noopener">devconnect-web-mauve.vercel.app</a>
+    </div>
+
+    <div class="meta-line">
+      <span><b>18</b> preguntas</span>
+      <span><b>5</b> minutos</span>
+      <span>Anónima</span>
+      <span>Uso académico</span>
+    </div>
+
+    <button class="go" onclick="start()"><span>Comenzar →</span></button>
+
+    <p class="pie">
+      Elver Steven Ariza González · estevenariza@uts.edu.co<br>
+      Facultad de Ciencias Naturales e Ingenierías · Bucaramanga<br>
+      Datos tratados con fines académicos conforme a la Ley 1581 de 2012.
+    </p>
+  </div>
+</section>
+
+<!-- PREGUNTAS -->
+<section class="screen" id="s-q">
+  <div class="inner">
+    <div class="qmeta" id="qm"></div>
+    <h2 class="q" id="qt"></h2>
+    <div class="qsub" id="qs"></div>
+    <div id="qb"></div>
+    <div class="nav">
+      <button class="btn gh" id="back" onclick="back()">← Atrás</button>
+      <button class="btn" id="next" onclick="next()">Continuar</button>
+      <span class="kbd" id="kbd"></span>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL -->
+<section class="screen" id="s-done">
+  <div class="inner">
+    <div class="dmark" id="dmark">— ENCUESTA COMPLETA</div>
+    <h2 class="dh" id="dh">Gracias por ser parte del piloto.</h2>
+    <p class="dp" id="dp">Tus respuestas quedaron registradas de forma anónima. Puedes seguir usando DevConnect: tu perfil y tus aportes se quedan.</p>
+    <a class="btn" style="display:inline-block;text-decoration:none" href="https://devconnect-web-mauve.vercel.app" target="_blank" rel="noopener">Volver a DevConnect</a>
+    <p class="legal" id="legal">Datos tratados con fines académicos conforme a la Ley 1581 de 2012.</p>
+  </div>
+</section>
+
+<script>
+/* ═══ CONFIGURACIÓN ═══
+   Usa la MISMA clave pública vigente que tiene la encuesta de estudiantes (index.html).
+   La clave que estaba aquí antes quedó expuesta en un chat: no la reutilices. */
+const SUPABASE_URL="https://jqpvcktnieyuitzllonv.supabase.co";
+const SUPABASE_KEY="PEGA_AQUI_LA_CLAVE_PUBLICA_VIGENTE";
+const TABLA="respuestas";
+const RUTA="piloto";
+
+/* ═══ RED ═══ */
+const cv=document.getElementById('net'), cx=cv.getContext('2d');
+let W,H,DPR,nodos=[],mx=-999,my=-999;
+function size(){
+  DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  cx.setTransform(DPR,0,0,DPR,0,0);
+}
+size(); addEventListener('resize',size);
+function Nodo(x,y,mio){
+  return{x,y,vx:(Math.random()-.5)*.14,vy:(Math.random()-.5)*.14,
+    r:mio?3:1.3+Math.random()*1.1,mio:!!mio,brillo:mio?0:1,pulso:0};
+}
+for(let k=0;k<(innerWidth<640?22:46);k++) nodos.push(Nodo(Math.random()*innerWidth,Math.random()*innerHeight));
+function nodoNuevo(){
+  const a=Math.random()*Math.PI*2, r=120+Math.random()*Math.min(W,H)*.28;
+  const n=Nodo(W/2+Math.cos(a)*r, H/2+Math.sin(a)*r, true);
+  n.pulso=1; nodos.push(n);
+}
+addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+addEventListener('mouseleave',()=>{mx=my=-999});
+const LIM=innerWidth<640?112:146;
+function pintar(){
+  cx.clearRect(0,0,W,H);
+  for(const n of nodos){
+    n.x+=n.vx; n.y+=n.vy;
+    if(n.x<0||n.x>W) n.vx*=-1;
+    if(n.y<0||n.y>H) n.vy*=-1;
+    if(n.pulso>0) n.pulso-=.012;
+    if(n.mio&&n.brillo<1) n.brillo+=.026;
+  }
+  for(let a=0;a<nodos.length;a++)for(let b=a+1;b<nodos.length;b++){
+    const p=nodos[a],q=nodos[b],d=Math.hypot(p.x-q.x,p.y-q.y);
+    if(d<LIM){
+      const m=p.mio||q.mio,o=(1-d/LIM)*(m?.38:.10);
+      cx.strokeStyle=m?`rgba(162,198,23,${o})`:`rgba(237,235,227,${o})`;
+      cx.lineWidth=m?.85:.5;
+      cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(q.x,q.y);cx.stroke();
+    }
+  }
+  for(const n of nodos){
+    if(mx>0){
+      const d=Math.hypot(n.x-mx,n.y-my);
+      if(d<165){
+        cx.strokeStyle=`rgba(201,232,90,${(1-d/165)*.15})`;
+        cx.lineWidth=.5;cx.beginPath();cx.moveTo(n.x,n.y);cx.lineTo(mx,my);cx.stroke();
+      }
+    }
+    if(n.mio){
+      const g=cx.createRadialGradient(n.x,n.y,0,n.x,n.y,17);
+      g.addColorStop(0,`rgba(162,198,23,${.42*n.brillo})`);g.addColorStop(1,'rgba(162,198,23,0)');
+      cx.fillStyle=g;cx.beginPath();cx.arc(n.x,n.y,17,0,7);cx.fill();
+      if(n.pulso>0){
+        cx.strokeStyle=`rgba(201,232,90,${n.pulso*.65})`;cx.lineWidth=1.2;
+        cx.beginPath();cx.arc(n.x,n.y,10+(1-n.pulso)*34,0,7);cx.stroke();
+      }
+    }
+    cx.fillStyle=n.mio?`rgba(201,232,90,${n.brillo})`:'rgba(237,235,227,.22)';
+    cx.beginPath();cx.arc(n.x,n.y,n.r,0,7);cx.fill();
+  }
+  requestAnimationFrame(pintar);
+}
+pintar();
+
+/* ═══ PREGUNTAS ═══
+   Bloque A: perfil y uso real. Bloque B: SUS (System Usability Scale, Brooke 1996),
+   10 ítems en su orden original; impares en positivo, pares en negativo.
+   Bloque C: valor percibido, intención de uso y recomendación (NPS). */
+const ACUERDO="1 = Totalmente en desacuerdo · 5 = Totalmente de acuerdo";
+const Q=[
+  {key:"institucion",tipo:"opcion",q:"¿Dónde estudias?",
+   op:["Unidades Tecnológicas de Santander (UTS)","Otra universidad o institución","No estoy estudiando actualmente"]},
+
+  {key:"semestre",tipo:"opcion",q:"¿En qué etapa de tu formación estás?",
+   op:["1.º a 3.er semestre","4.º a 6.º semestre","7.º semestre o más","Ya terminé"]},
+
+  {key:"tareas",tipo:"multi",q:"¿Qué alcanzaste a hacer en DevConnect?",
+   sub:"Marca todo lo que hiciste",
+   op:["Crear mi cuenta","Completar mi perfil","Publicar código","Comentar una publicación",
+       "Proponer una mejora a alguien","Aceptar o rechazar una mejora","Entrar a una sesión en vivo","No alcancé a usarla"]},
+
+  {key:"sus1",tipo:"escala",q:"Creo que me gustaría usar DevConnect con frecuencia.",sub:ACUERDO},
+  {key:"sus2",tipo:"escala",q:"Encontré DevConnect innecesariamente complejo.",sub:ACUERDO},
+  {key:"sus3",tipo:"escala",q:"Pensé que DevConnect era fácil de usar.",sub:ACUERDO},
+  {key:"sus4",tipo:"escala",q:"Creo que necesitaría ayuda de alguien con conocimientos técnicos para poder usar DevConnect.",sub:ACUERDO},
+  {key:"sus5",tipo:"escala",q:"Las funciones de DevConnect están bien integradas.",sub:ACUERDO},
+  {key:"sus6",tipo:"escala",q:"Pensé que había demasiadas inconsistencias en DevConnect.",sub:ACUERDO},
+  {key:"sus7",tipo:"escala",q:"Imagino que la mayoría de las personas aprendería a usar DevConnect muy rápido.",sub:ACUERDO},
+  {key:"sus8",tipo:"escala",q:"Encontré DevConnect muy engorroso de usar.",sub:ACUERDO},
+  {key:"sus9",tipo:"escala",q:"Me sentí seguro usando DevConnect.",sub:ACUERDO},
+  {key:"sus10",tipo:"escala",q:"Necesité aprender muchas cosas antes de poder usar DevConnect.",sub:ACUERDO},
+
+  {key:"aprendizaje",tipo:"escala",q:"Recibir mejoras de otros estudiantes sobre mi código me ayuda a aprender.",sub:ACUERDO},
+  {key:"empleabilidad",tipo:"escala",q:"Un perfil con mis mejoras aceptadas me ayudaría a conseguir prácticas o empleo.",sub:ACUERDO},
+
+  {key:"continuidad",tipo:"opcion",q:"¿Seguirías usando DevConnect después del piloto?",
+   op:["Sí","Tal vez","No"]},
+
+  {key:"nps",tipo:"escala",min:0,max:10,izq:"NADA PROBABLE",der:"MUY PROBABLE",
+   q:"¿Qué tan probable es que le recomiendes DevConnect a un compañero?",sub:"0 = nada probable · 10 = muy probable"},
+
+  {key:"comentario",tipo:"abierta",q:"¿Qué fue lo más confuso, lo que no funcionó o lo que mejorarías?",
+   sub:"Opcional, pero es la respuesta más valiosa"}
+];
+
+let cola=Q, i=0, R={}, busy=false, terminado=false, timer=null, tl=null, enviado=false;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function start(){
+  gsap.to('#net',{opacity:1,duration:1.6,ease:'power2.out'});
+  gsap.to('#s-intro .inner',{opacity:0,y:-26,duration:.45,ease:'power2.in',onComplete:()=>{
+    show('s-q'); document.getElementById('mark').style.display='flex'; render();
+  }});
+}
+
+function render(){
+  if(i<0) i=0;
+  if(i>cola.length-1) i=cola.length-1;
+  const q=cola[i];
+  if(!q) return fin(false);
+  const b=document.getElementById('qb'), t=document.getElementById('qt');
+  t.innerHTML=q.q.split(' ').map(w=>'<span class="w">'+w+'</span>').join(' ');
+  document.getElementById('qs').textContent=q.sub||'';
+  document.getElementById('qm').textContent=q.tipo==='pitch'?'— CONTEXTO':'— PREGUNTA '+(i+1);
+  document.getElementById('count').textContent=q.tipo==='pitch'?'':(i+1)+' / '+cola.length;
+  document.getElementById('back').style.display=i===0?'none':'';
+  b.innerHTML='';
+
+  if(q.tipo==='pitch'){
+    b.innerHTML='<p class="pitch">'+q.texto+'</p>';
+    setBtn('Continuar',false); kbdTxt('');
+  }
+  else if(q.tipo==='opcion'||q.tipo==='multi'){
+    const w=document.createElement('div'); w.className='opts';
+    q.op.forEach((o,k)=>{
+      const el=document.createElement('button'); el.className='opt'; el.type='button';
+      el.dataset.val=o;
+      const s=q.tipo==='multi'?(R[q.key]||[]).includes(o):R[q.key]===o;
+      if(s) el.classList.add('sel');
+      el.innerHTML=q.tipo==='multi'
+        ?'<span class="bx">'+(s?'✓':'')+'</span><span class="tx">'+o+'</span>'
+        :'<span class="n">'+String(k+1).padStart(2,'0')+'</span><span class="tx">'+o+'</span>';
+      el.onclick=()=>pick(o);
+      w.appendChild(el);
+    });
+    b.appendChild(w);
+    kbdTxt(q.tipo==='opcion'?'TECLAS 1–'+q.op.length:'');
+    setBtn('Continuar', q.tipo==='multi'?!(R[q.key]||[]).length:!R[q.key]);
+  }
+  else if(q.tipo==='escala'){
+    const s=document.createElement('div'); s.className='scale';
+    const mn=q.min??1, mx=q.max??5;
+    if(mx-mn>5) s.classList.add('ancha');
+    for(let n=mn;n<=mx;n++){
+      const el=document.createElement('button'); el.className='sc'; el.type='button';
+      el.textContent=n; el.dataset.val=n;
+      if(R[q.key]===n) el.classList.add('sel');
+      el.onclick=()=>pick(n);
+      s.appendChild(el);
+    }
+    b.appendChild(s);
+    const l=document.createElement('div'); l.className='slbl';
+    l.innerHTML='<span>'+(q.izq||'EN DESACUERDO')+'</span><span>'+(q.der||'DE ACUERDO')+'</span>'; b.appendChild(l);
+    kbdTxt(mx===5?'TECLAS 1–5':''); setBtn('Continuar',R[q.key]===undefined);
+  }
+  else{
+    const ta=document.createElement('textarea'); ta.className='ta';
+    ta.placeholder='Escriba aquí…'; ta.value=R[q.key]||'';
+    ta.oninput=e=>R[q.key]=e.target.value;
+    b.appendChild(ta); kbdTxt(''); setBtn('Finalizar',false);
+  }
+
+  if(tl) tl.kill();
+  gsap.set(['.qmeta','.qsub','.nav'],{clearProps:'all'});
+  tl=gsap.timeline({defaults:{overwrite:'auto'},
+    onComplete:()=>gsap.set(['.qmeta','.qsub','.nav'],{opacity:1,y:0,clearProps:'transform'})});
+  tl.fromTo('.qmeta',{opacity:0},{opacity:1,duration:.3})
+    .fromTo(t.querySelectorAll('.w'),{opacity:0,y:22},{opacity:1,y:0,duration:.5,stagger:.032,ease:'power3.out'},'-=.16')
+    .fromTo('.qsub',{opacity:0},{opacity:1,duration:.3},'-=.3')
+    .fromTo(b.querySelectorAll('.opt,.sc,.ta,.pitch'),{opacity:0,y:14},{opacity:1,y:0,duration:.42,stagger:.035,ease:'power2.out'},'-=.24')
+    .fromTo('.nav',{opacity:0},{opacity:1,duration:.3},'-=.18');
+
+  gsap.to('#rulei',{width:Math.round(i/cola.length*100)+'%',duration:.55,ease:'power2.out'});
+}
+function setBtn(txt,dis){const n=document.getElementById('next');n.textContent=txt;n.disabled=dis}
+function kbdTxt(t){document.getElementById('kbd').textContent=t}
+
+function pick(v){
+  if(busy||terminado) return;
+  const q=cola[i];
+  if(q.tipo==='multi'){
+    const a=R[q.key]||[], activo=a.includes(v);
+    R[q.key]=activo?a.filter(x=>x!==v):[...a,v];
+    const el=[...document.querySelectorAll('#qb .opt')].find(x=>x.dataset.val===v);
+    if(el){
+      el.classList.toggle('sel',!activo);
+      const bx=el.querySelector('.bx'); if(bx) bx.textContent=!activo?'✓':'';
+    }
+    if(!R[q.key].length) delete R[q.key];
+    document.getElementById('next').disabled=!(R[q.key]||[]).length;
+    return;
+  }
+  const previo=R[q.key];
+  R[q.key]=v;
+  document.querySelectorAll('#qb .opt,#qb .sc').forEach(el=>{
+    el.classList.toggle('sel', el.dataset.val===String(v));
+  });
+  document.getElementById('next').disabled=false;
+  if(previo===undefined) nodoNuevo();
+  clearTimeout(timer);
+  timer=setTimeout(next,300);
+}
+
+function next(){
+  clearTimeout(timer);
+  if(busy||terminado) return;
+  const q=cola[i];
+  if(!q) return fin(false);
+  if(q.tipo==='multi'&&R[q.key]) nodoNuevo();
+  if(i>=cola.length-1) return fin(false);
+  busy=true;
+  gsap.to('#s-q .inner',{opacity:0,y:-20,duration:.28,ease:'power2.in',onComplete:()=>{
+    try{
+      i=Math.min(i+1,cola.length-1);
+      gsap.set('#s-q .inner',{opacity:1,y:0});
+      document.getElementById('s-q').scrollTop=0;
+      render();
+    }catch(e){ console.error(e); gsap.set(['#s-q .inner','.nav'],{opacity:1,y:0}); }
+    finally{ busy=false; }
+  }});
+}
+function back(){
+  clearTimeout(timer);
+  if(i===0||busy||terminado) return; busy=true;
+  gsap.to('#s-q .inner',{opacity:0,y:20,duration:.24,ease:'power2.in',onComplete:()=>{
+    try{
+      i=Math.max(i-1,0);
+      gsap.set('#s-q .inner',{opacity:1,y:0});
+      render();
+    }catch(e){ console.error(e); gsap.set('#s-q .inner',{opacity:1,y:0}); }
+    finally{ busy=false; }
+  }});
+}
+
+function fin(salida){
+  if(terminado) return;
+  terminado=true; busy=true; clearTimeout(timer);
+  for(let k=0;k<6;k++) setTimeout(nodoNuevo,k*100);
+  gsap.to('#s-q .inner',{opacity:0,y:-22,duration:.38,onComplete:()=>{
+    show('s-done');
+    gsap.to('#rulei',{width:'100%',duration:.5});
+    document.getElementById('count').textContent='';
+    const vis=[...document.querySelectorAll('#s-done .inner > *')].filter(el=>el.style.display!=='none');
+    gsap.fromTo(vis,{opacity:0,y:26},{opacity:1,y:0,duration:.6,stagger:.1,ease:'power3.out'});
+    if(!salida) enviar(true);
+  }});
+}
+
+/* ═══ ENVÍO ═══ */
+async function post(data){
+  const url=SUPABASE_URL.replace(/\/+$/,'')+'/rest/v1/'+TABLA;
+  const r=await fetch(url,{
+    method:'POST',
+    headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,
+      'Content-Type':'application/json',Prefer:'return=minimal'},
+    body:JSON.stringify(data)
+  });
+  console.log('[DevConnect piloto] estado', r.status);
+  return r.ok;
+}
+
+async function enviar(auto){
+  if(enviado) return;
+  const data={ruta:RUTA,respuestas:R,contacto:null,fecha:new Date().toISOString()};
+  try{
+    if(await post(data)) enviado=true;
+  }catch(e){ console.error('[DevConnect piloto] fallo', e); }
+}
+
+addEventListener('keydown',e=>{
+  if(!document.getElementById('s-q').classList.contains('on')||busy||terminado) return;
+  const q=cola[i];
+  if(e.key>='1'&&e.key<='9'){
+    const n=+e.key-1;
+    if(q.tipo==='escala'&&(q.max??5)===5&&n<5) pick(n+1);
+    else if((q.tipo==='opcion'||q.tipo==='multi')&&q.op&&n<q.op.length) pick(q.op[n]);
+  }
+  if(e.key==='Enter'&&!document.getElementById('next').disabled&&q.tipo!=='abierta') next();
+});
+</script>
+</body>
+</html>
