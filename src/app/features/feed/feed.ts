@@ -15,6 +15,7 @@ import { tecnologia } from '../../core/tecnologias';
 import { Avatar } from '../../shared/avatar';
 import { Cargando } from '../../shared/cargando';
 import { Tecnologia } from '../../shared/tecnologia';
+import { EmpiezaAqui } from './empieza-aqui';
 import { TarjetaActividad } from './tarjeta-actividad';
 import { TarjetaPublicacion } from './tarjeta-publicacion';
 
@@ -35,7 +36,7 @@ type Item = { tipo: 'publicacion'; clave: string; p: Publicacion } | { tipo: 'ac
 
 @Component({
   selector: 'app-feed',
-  imports: [RouterLink, Avatar, Tecnologia, Cargando, TarjetaPublicacion, TarjetaActividad],
+  imports: [RouterLink, Avatar, Tecnologia, Cargando, TarjetaPublicacion, TarjetaActividad, EmpiezaAqui],
   templateUrl: './feed.html',
   styleUrl: './feed.css',
 })
@@ -51,13 +52,14 @@ export class Feed implements OnInit {
   readonly institucion = input<string>();
   readonly estado = input<string>();
   readonly tipo = input<string>();
+  readonly nivel = input<string>();
 
   protected tipos = TIPOS;
   protected estados = ESTADOS;
   protected lenguajes = LENGUAJES.map(l => ({ ...l, conLogo: !!tecnologia(l.valor).logo }));
 
   protected texto = signal('');
-  protected filtro = signal<FiltroPublicaciones>({ q: '', lenguaje: '', institucion: '', estado: '', tipo: '' });
+  protected filtro = signal<FiltroPublicaciones>({ q: '', lenguaje: '', institucion: '', estado: '', tipo: '', nivel: '' });
   protected publicaciones = signal<Publicacion[]>([]);
   protected actividad = signal<Actividad[]>([]);
   protected cargando = signal(true);
@@ -73,7 +75,7 @@ export class Feed implements OnInit {
   protected esEstudiante = computed(() => this.auth.usuario()?.rol === 'estudiante');
   protected filtrosActivos = computed(() => {
     const f = this.filtro();
-    return [f.lenguaje, f.institucion, f.estado, f.tipo].filter(Boolean).length;
+    return [f.lenguaje, f.institucion, f.estado, f.tipo, f.nivel].filter(Boolean).length;
   });
   /** Institución que llegó en la URL pero ya no está en el catálogo: se agrega para que el select la muestre. */
   protected institucionFuera = computed(() => {
@@ -136,6 +138,7 @@ export class Feed implements OnInit {
       institucion: (this.institucion() ?? '').slice(0, 150),
       estado: valido(this.estado(), ['abierta', 'resuelta']) as FiltroPublicaciones['estado'],
       tipo: valido(this.tipo(), ['pregunta', 'reto']) as FiltroPublicaciones['tipo'],
+      nivel: valido(this.nivel(), ['principiante', 'intermedio']) as FiltroPublicaciones['nivel'],
     });
     this.texto.set(this.filtro().q);
     this.cargar(true);
@@ -154,13 +157,20 @@ export class Feed implements OnInit {
   }
 
   /** Pulsar un chip lo activa; pulsar el que ya está activo vuelve a mostrar todo. */
-  alternar(clave: 'tipo' | 'estado' | 'lenguaje', valor: string): void {
+  alternar(clave: 'tipo' | 'estado' | 'lenguaje' | 'nivel', valor: string): void {
     this.cambiar({ [clave]: this.filtro()[clave] === valor ? '' : valor } as Partial<FiltroPublicaciones>);
   }
 
   limpiar(): void {
     this.texto.set('');
-    this.cambiar({ q: '', lenguaje: '', institucion: '', estado: '', tipo: '' });
+    this.cambiar({ q: '', lenguaje: '', institucion: '', estado: '', tipo: '', nivel: '' });
+  }
+
+  /** Desde «Empieza aquí»: solo los códigos de principiante que todavía necesitan mejoras. */
+  practicar(): void {
+    this.texto.set('');
+    this.cambiar({ q: '', lenguaje: '', institucion: '', estado: 'abierta', tipo: '', nivel: 'principiante' });
+    document.querySelector('.filtros')?.scrollIntoView({ block: 'start' });
   }
 
   cargarMas(): void {

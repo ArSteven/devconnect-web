@@ -2,6 +2,18 @@
 
 export type TipoPublicacion = 'pregunta' | 'reto';
 
+/** Nivel opcional de un código publicado: ayuda a quien empieza a encontrar qué practicar. */
+export type NivelPublicacion = 'principiante' | 'intermedio';
+
+export const NIVELES_PUBLICACION: { valor: NivelPublicacion; etiqueta: string }[] = [
+  { valor: 'principiante', etiqueta: 'Principiante' },
+  { valor: 'intermedio', etiqueta: 'Intermedio' },
+];
+
+export function etiquetaNivel(valor: string): string {
+  return NIVELES_PUBLICACION.find(n => n.valor === valor)?.etiqueta ?? '';
+}
+
 export interface Publicacion {
   id: string;
   autor_id: string;
@@ -15,6 +27,7 @@ export interface Publicacion {
   total_lineas: number;
   estado: 'abierta' | 'resuelta';
   tipo: TipoPublicacion;
+  nivel: NivelPublicacion | null; // los retos no lo usan
   fecha_limite: string | null;
   total_propuestas: number;
   total_comentarios: number;
@@ -151,6 +164,7 @@ export interface FiltroPublicaciones {
   institucion: string;
   estado: '' | 'abierta' | 'resuelta';
   tipo: '' | TipoPublicacion;
+  nivel: '' | NivelPublicacion;
 }
 
 export interface Experiencia {

@@ -1,6 +1,6 @@
 # Pruebas manuales
 
-Casos de prueba de «Pruébalo», las soluciones de retos frente al uso de IA, la tarjeta de talento compartible, el árbol de evolución del código, el registro de métricas del modelo de negocio, el campo de código y los ajustes de interfaz. Cada caso indica los pasos y el resultado esperado.
+Casos de prueba de «Pruébalo», las soluciones de retos frente al uso de IA, la tarjeta de talento compartible, el árbol de evolución del código, el registro de métricas del modelo de negocio, el campo de código, los ajustes de interfaz, el panel «Empieza aquí», el nivel de las publicaciones y la guía al proponer una mejora. Cada caso indica los pasos y el resultado esperado.
 
 ## Preparación
 
@@ -420,3 +420,67 @@ ALTER TABLE eventos_pausa RENAME TO eventos;
 - El filtro activo queda con fondo oscuro; al tocarlo otra vez se desactiva.
 - El avatar de cada tarjeta es un círculo completo de 40 px.
 - A 360 px cada fila se desplaza de lado y la página no.
+
+---
+
+## 8. Empieza aquí
+
+### EA-01 · Aparece para un estudiante nuevo
+**Pasos:** registra un estudiante nuevo, termina la bienvenida y abre el feed.
+**Resultado esperado:**
+- Arriba del feed, debajo del título, está el panel «Empieza aquí» con borde negro y sombra azul, y el avance «N de 3 pasos listos.».
+- Tiene tres pasos numerados: «Completa tu perfil», «Mejora un código de principiante» y «Publica tu primer código», cada uno con una línea que explica qué hacer.
+
+### EA-02 · Paso 1: completar el perfil
+**Pasos:** pulsa «Completa tu perfil», guarda un titular, una institución y una tecnología, y vuelve al feed.
+**Resultado esperado:** el enlace abre «Editar perfil». De vuelta en el feed, el paso 1 lleva ✓ en un círculo azul y el avance sube. Si falta cualquiera de los tres datos, el paso sigue pendiente.
+
+### EA-03 · Paso 2: mejorar un código de principiante
+**Pasos:** pulsa «Mejora un código de principiante»; abre uno de los códigos y envía una propuesta; vuelve al feed.
+**Resultado esperado:**
+- El feed queda filtrado por «Necesita mejoras» y «Principiante» (los dos en oscuro; la URL lleva `?estado=abierta&nivel=principiante`) y baja hasta los filtros.
+- Después de enviar la primera propuesta, el panel ya no aparece: es solo para quien todavía no ha propuesto una mejora.
+
+### EA-04 · Paso 3: publicar el primer código
+**Pasos:** con otro estudiante nuevo, pulsa «Publica tu primer código», publica y vuelve al feed.
+**Resultado esperado:** el enlace abre «Publicar código». De vuelta en el feed, el paso 3 lleva ✓ y el panel sigue a la vista, porque todavía no envió una propuesta.
+
+### EA-05 · Ocultar
+**Pasos:** pulsa «Ocultar»; recarga la página; cierra sesión y vuelve a entrar con la misma cuenta.
+**Resultado esperado:** el panel desaparece y no vuelve a salir en ese navegador. Si se oculta con el teclado (Tab hasta «Ocultar» y Enter), el foco pasa al título «Feed». En una ventana privada, donde el navegador no guarda la preferencia, el panel igual se oculta mientras la página siga abierta.
+
+### EA-06 · No sale para empresas ni para quien ya propuso
+**Pasos:** abre el feed con una empresa y con un estudiante que ya envió una propuesta.
+**Resultado esperado:** ninguno de los dos ve el panel.
+
+### EA-07 · Teclado y celular
+**Pasos:** recorre el panel con Tab y ábrelo a 360 px de ancho.
+**Resultado esperado:** los tres pasos y «Ocultar» se alcanzan con Tab, muestran el contorno de foco y se activan con Enter; el lector de pantalla anuncia cada paso como «Listo» o «Pendiente». A 360 px el panel cabe sin desplazamiento horizontal.
+
+---
+
+## 9. Nivel de la publicación
+
+### N-01 · Publicar con nivel
+**Pasos:** en «Publicar código» abre el selector «Nivel (opcional)», elige «Principiante» y publica. Publica otro código con «Sin indicar».
+**Resultado esperado:** el selector tiene «Sin indicar», «Principiante» e «Intermedio». El primero se guarda con `nivel` = `principiante`; el segundo, sin nivel (`null`).
+
+### N-02 · Etiqueta en la tarjeta y en el detalle
+**Pasos:** busca en el feed el código del caso N-01 y ábrelo.
+**Resultado esperado:** la tarjeta muestra la etiqueta «Principiante» junto a «Necesita mejoras», y el detalle la muestra con los demás chips de arriba. Un código sin nivel y los retos no muestran etiqueta.
+
+### N-03 · Filtrar por «Principiante»
+**Pasos:** en el feed toca el chip «Principiante» de la primera fila; tócalo otra vez.
+**Resultado esperado:** con el chip activo (fondo oscuro) solo quedan códigos de principiante y la URL lleva `?nivel=principiante`; las tarjetas de mejoras aceptadas también se limitan a ese nivel. Al tocarlo de nuevo se desactiva y vuelve a mostrar todo. «Limpiar filtros» también lo quita.
+
+### N-04 · API
+**Pasos:** con un token de estudiante, crea una publicación con `"nivel": "intermedio"`, otra con `"nivel": "experto"` y lista `GET /api/v1/publicaciones?nivel=principiante` y `?nivel=experto`.
+**Resultado esperado:** la primera responde 201 con `nivel` «intermedio»; la segunda, 400. El listado filtrado trae solo publicaciones de ese nivel, y un nivel desconocido responde 400. En el listado y en el detalle `nivel` llega como texto o `null`.
+
+---
+
+## 10. Guía al proponer una mejora
+
+### G-01 · Recuadro sobre el editor
+**Pasos:** con un estudiante, abre un código de otra persona y baja hasta «Proponer una mejora»; luego abre un reto abierto.
+**Resultado esperado:** arriba del campo «Tu versión del código» hay un recuadro discreto, con borde azul a la izquierda, que dice «Busca nombres poco claros, código repetido, validaciones que faltan o una forma más simple de hacerlo. Explica por qué tu versión es mejor.». En el reto no aparece: allí la guía es la de «Explica tus decisiones».

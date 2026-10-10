@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Api } from '../../core/api';
 import { mensajeDeError } from '../../core/api-error';
 import { Avisos } from '../../core/avisos';
-import { LENGUAJES } from '../../core/modelos';
+import { LENGUAJES, NIVELES_PUBLICACION, NivelPublicacion } from '../../core/modelos';
 import { CampoCodigo } from '../../shared/campo-codigo';
 import { PanelEjecucion } from '../../shared/panel-ejecucion';
 import { Tecnologia } from '../../shared/tecnologia';
@@ -32,6 +32,17 @@ import { Tecnologia } from '../../shared/tecnologia';
               <option [value]="l.valor">{{ l.etiqueta }}</option>
             }
           </select>
+        </label>
+
+        <label class="campo">
+          Nivel (opcional)
+          <select formControlName="nivel" aria-describedby="ayuda-nivel">
+            <option value="">Sin indicar</option>
+            @for (n of niveles; track n.valor) {
+              <option [value]="n.valor">{{ n.etiqueta }}</option>
+            }
+          </select>
+          <span class="ayuda" id="ayuda-nivel">Ayuda a quien empieza a encontrar códigos para practicar.</span>
         </label>
 
         <label class="campo">
@@ -74,12 +85,14 @@ export class Publicar {
   private avisos = inject(Avisos);
 
   protected lenguajes = LENGUAJES;
+  protected niveles = NIVELES_PUBLICACION;
   protected enviando = signal(false);
   protected error = signal('');
 
   protected form = this.fb.nonNullable.group({
     titulo: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(150)]],
     lenguaje: ['go', Validators.required],
+    nivel: ['' as NivelPublicacion | ''],
     descripcion: ['', Validators.maxLength(2000)],
     codigo: ['', [Validators.required, Validators.maxLength(20000)]],
   });
@@ -93,7 +106,9 @@ export class Publicar {
     }
     this.enviando.set(true);
     this.error.set('');
-    this.api.crearPublicacion(this.form.getRawValue()).subscribe({
+    // Sin nivel elegido, el campo no viaja: la publicación queda sin nivel.
+    const { nivel, ...datos } = this.form.getRawValue();
+    this.api.crearPublicacion(nivel ? { ...datos, nivel } : datos).subscribe({
       next: p => {
         this.avisos.exito('Publicado: ya está en el feed para que la comunidad proponga mejoras.');
         this.router.navigate(['/publicacion', p.id]);

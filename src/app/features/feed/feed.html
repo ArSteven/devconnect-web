@@ -1,13 +1,17 @@
 <div class="feed">
   <header class="cabecera">
     <div>
-      <h1>Feed</h1>
+      <h1 id="titulo-feed" tabindex="-1">Feed</h1>
       <p class="tenue">Código de la comunidad que espera tus mejoras.</p>
     </div>
     @if (esEstudiante()) {
       <a class="btn btn-primario" routerLink="/publicar">+ Publicar código</a>
     }
   </header>
+
+  @if (esEstudiante()) {
+    <app-empieza-aqui (practicar)="practicar()" />
+  }
 
   <!-- Franja: la sesión en vivo (o la próxima) y quienes más mejoras lograron. -->
   <section class="franja" aria-label="Sesiones en vivo y destacados">
@@ -79,6 +83,8 @@
                   (click)="alternar('estado', e.valor)">{{ e.texto }}</button>
         }
       </div>
+      <button type="button" class="chip-filtro" [class.on]="filtro().nivel === 'principiante'" [attr.aria-pressed]="filtro().nivel === 'principiante'"
+              (click)="alternar('nivel', 'principiante')">Principiante</button>
       <label class="chip-filtro selector" [class.on]="!!filtro().institucion">
         <span class="sr-only">Institución del autor</span>
         <select [value]="filtro().institucion" (change)="cambiar({ institucion: $any($event.target).value })">

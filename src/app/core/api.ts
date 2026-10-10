@@ -3,7 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import {
   Actividad, Candidato, Catalogos, Comentario, Defensa, DetallePublicacion, EstudianteDestacado, FiltroPublicaciones, FiltroTalento,
-  NuevaPropuesta, Portafolio, PerfilEditable, Propuesta, Publicacion, ResultadoEjecucion, SesionVivo, Suscripcion, TarjetaTalento,
+  NivelPublicacion, NuevaPropuesta, Portafolio, PerfilEditable, Propuesta, Publicacion, ResultadoEjecucion, SesionVivo, Suscripcion,
+  TarjetaTalento,
 } from './modelos';
 
 /** Agrega solo los parámetros con valor: un filtro vacío no viaja. */
@@ -21,7 +22,13 @@ function parametros(valores: Record<string, string | number | boolean>): HttpPar
  * tarjetas del feed fallaban al dibujarse y sus enlaces quedaban sin destino).
  */
 function completarPublicacion<T extends Publicacion>(p: T): T {
-  return { ...p, proponentes: p.proponentes ?? [], total_proponentes: p.total_proponentes ?? p.total_propuestas, mejora: p.mejora ?? null };
+  return {
+    ...p,
+    proponentes: p.proponentes ?? [],
+    total_proponentes: p.total_proponentes ?? p.total_propuestas,
+    mejora: p.mejora ?? null,
+    nivel: p.nivel ?? null,
+  };
 }
 
 function completarPortafolio(p: Portafolio): Portafolio {
@@ -42,12 +49,12 @@ export class Api {
   }
 
   /** Las últimas mejoras aceptadas, con los filtros del feed que les aplican. */
-  actividad(filtro: Pick<FiltroPublicaciones, 'lenguaje' | 'tipo' | 'institucion'>): Observable<Actividad[]> {
-    const params = parametros({ lenguaje: filtro.lenguaje, tipo: filtro.tipo, institucion: filtro.institucion });
+  actividad(filtro: Pick<FiltroPublicaciones, 'lenguaje' | 'tipo' | 'institucion' | 'nivel'>): Observable<Actividad[]> {
+    const params = parametros({ lenguaje: filtro.lenguaje, tipo: filtro.tipo, institucion: filtro.institucion, nivel: filtro.nivel });
     return this.http.get<{ actividad: Actividad[] }>(`${this.base}/actividad`, { params }).pipe(map(r => r.actividad));
   }
 
-  crearPublicacion(datos: { titulo: string; descripcion: string; lenguaje: string; codigo: string }): Observable<Publicacion> {
+  crearPublicacion(datos: { titulo: string; descripcion: string; lenguaje: string; codigo: string; nivel?: NivelPublicacion }): Observable<Publicacion> {
     return this.http.post<{ publicacion: Publicacion }>(`${this.base}/publicaciones`, datos).pipe(map(r => r.publicacion));
   }
 

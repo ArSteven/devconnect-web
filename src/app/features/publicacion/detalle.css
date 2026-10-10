@@ -64,6 +64,7 @@ h3 { font-size: 18px; }
 
 .formulario { padding: clamp(18px, 3vw, 24px); display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 90px; }
 .formulario .tenue { font-size: 13px; line-height: 1.6; }
+.guia-mejora { padding: 10px 14px; background: var(--papel); border-left: 4px solid var(--azul); border-radius: 0 4px 4px 0; font-size: 13px; line-height: 1.6; color: #3D3B36; }
 .formulario > .btn { align-self: flex-start; }
 .herramientas { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .enlace { min-height: 44px; padding: 0; border: 0; background: none; color: var(--azul); font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; cursor: pointer; }

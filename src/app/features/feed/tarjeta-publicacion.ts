@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { filasAportes, filasCodigo } from '../../core/aportes';
 import { AuthService } from '../../core/auth/auth.service';
 import { alias } from '../../core/github';
-import { Publicacion, hace } from '../../core/modelos';
+import { Publicacion, etiquetaNivel, hace } from '../../core/modelos';
 import { Reloj, cuentaRegresiva } from '../../core/reloj';
 import { Avatar } from '../../shared/avatar';
 import { EditorCodigo } from '../../shared/editor-codigo';
@@ -60,7 +60,10 @@ const lineas = (n: number, texto: [string, string]) => `⋯ ${n} ${n === 1 ? tex
         } @else {
           <span>{{ participacion().texto }}</span>
         }
-        <span class="chip estado {{ estado().clase }}">{{ estado().texto }}</span>
+        <span class="etiquetas">
+          @if (p().nivel; as n) { <span class="chip">{{ etiquetaNivel(n) }}</span> }
+          <span class="chip {{ estado().clase }}">{{ estado().texto }}</span>
+        </span>
       </footer>
     </article>
   `,
@@ -84,7 +87,7 @@ const lineas = (n: number, texto: [string, string]) => `⋯ ${n} ${n === 1 ? tex
     .pila { display: inline-flex; padding-left: 8px; }
     .pila app-avatar { margin-left: -8px; }
     .invitar { display: inline-flex; align-items: center; min-height: 44px; font-weight: 800; color: var(--azul); }
-    .estado { margin-left: auto; }
+    .etiquetas { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
     @media (max-width: 520px) {
       .pub { padding: 16px; }
       .titulo { font-size: 17px; }
@@ -99,6 +102,7 @@ export class TarjetaPublicacion {
 
   protected hace = hace;
   protected alias = alias;
+  protected etiquetaNivel = etiquetaNivel;
   protected esReto = computed(() => this.p().tipo === 'reto');
 
   /** En un reto: "Cierra en 2 d 4 h" mientras recibe soluciones; después, "Cerrado". */

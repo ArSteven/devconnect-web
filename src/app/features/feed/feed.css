@@ -57,7 +57,7 @@ h1 { font-size: clamp(30px, 4vw, 42px); }
 
 /* Los lenguajes, en una sola línea que se desplaza de lado. El margen deja ver el contorno de foco. */
 .lenguajes { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; margin: -6px; padding: 6px; scrollbar-width: thin; }
-.lenguajes .chip-filtro { flex: none; }
+.lenguajes .chip-filtro, .fila > button.chip-filtro { flex: none; }
 .chip-filtro {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
   border: 2px solid var(--tinta); border-radius: 999px; background: var(--blanco); color: var(--tinta);
@@ -66,9 +66,10 @@ h1 { font-size: clamp(30px, 4vw, 42px); }
 .chip-filtro:hover { background: var(--papel); }
 .chip-filtro.on { background: var(--tinta); color: var(--papel); }
 .limpiar { flex: none; border-color: var(--coral-texto); background: transparent; color: var(--coral-texto); }
-.selector { position: relative; margin-left: auto; padding: 0; }
+/* La institución, a la derecha: si no le quedan 216 px (lo que ocupa «Todas las instituciones»), baja de línea. */
+.selector { position: relative; flex: 1 0 216px; max-width: 260px; margin-left: auto; padding: 0; }
 .selector select {
-  appearance: none; max-width: 240px; min-height: 40px; padding: 0 32px 0 14px; border: 0; border-radius: 999px;
+  appearance: none; width: 100%; max-width: 240px; min-height: 40px; padding: 0 32px 0 14px; border: 0; border-radius: 999px;
   background: transparent; color: inherit; font: inherit; text-overflow: ellipsis; cursor: pointer;
 }
 .selector select option { background: var(--blanco); color: var(--tinta); }

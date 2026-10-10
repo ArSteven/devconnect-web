@@ -16,6 +16,7 @@
           <span class="chip" [class.chip-abierta]="!retoCerrado()">{{ retoCerrado() ? 'Cerrado' : 'Cierra ' + faltaParaCerrar().toLowerCase() }}</span>
         } @else {
           <span class="chip" [class.chip-resuelta]="p.estado === 'resuelta'" [class.chip-abierta]="p.estado === 'abierta'">{{ p.estado === 'resuelta' ? '✓ Mejorado' : 'Necesita mejoras' }}</span>
+          @if (p.nivel) { <span class="chip">{{ etiquetaNivel(p.nivel) }}</span> }
         }
         <span class="chip"><app-tecnologia [nombre]="p.lenguaje" [tamano]="16" /></span>
       </div>
@@ -185,6 +186,9 @@
           <p class="tenue">
             {{ p.codigo ? 'El campo ya tiene el código original: cambia solo lo necesario. Así el autor ve de un vistazo qué corregiste.' : 'Escribe tu solución completa.' }}
           </p>
+          @if (p.tipo !== 'reto') {
+            <p class="guia-mejora">Busca nombres poco claros, código repetido, validaciones que faltan o una forma más simple de hacerlo. Explica por qué tu versión es mejor.</p>
+          }
           <label class="campo">
             Tu versión del código
             <textarea formControlName="codigo" rows="14" class="campo-codigo" appCampoCodigo aria-describedby="ayuda-tab"></textarea>

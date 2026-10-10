@@ -9,7 +9,9 @@ import { Avisos } from '../../core/avisos';
 import { mismoCodigo } from '../../core/diff';
 import { arbolEvolucion } from '../../core/evolucion';
 import { urlSala } from '../../core/jitsi';
-import { Defensa, DetallePublicacion, NuevaPropuesta, Propuesta, USOS_IA, UsoIA, hace, nombreLenguaje } from '../../core/modelos';
+import {
+  Defensa, DetallePublicacion, NuevaPropuesta, Propuesta, USOS_IA, UsoIA, etiquetaNivel, hace, nombreLenguaje,
+} from '../../core/modelos';
 import { Reloj, cuentaRegresiva, fechaCorta, paraInput } from '../../core/reloj';
 import { Avatar } from '../../shared/avatar';
 import { CampoCodigo } from '../../shared/campo-codigo';
@@ -44,6 +46,7 @@ export class Detalle {
 
   protected hace = hace;
   protected nombreLenguaje = nombreLenguaje;
+  protected etiquetaNivel = etiquetaNivel;
   protected fechaCorta = fechaCorta;
   protected pub = signal<DetallePublicacion | null>(null);
   protected error = signal('');
