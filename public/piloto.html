@@ -64,6 +64,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidd
 .go span{position:relative;z-index:2}
 .go:hover{color:#0C0E0B}
 .go:hover::after{transform:scaleX(1)}
+.consent{display:flex;gap:12px;align-items:flex-start;margin:0 0 26px;font-size:12px;line-height:1.75;color:var(--dim);cursor:pointer}
+.consent input{margin-top:5px;width:16px;height:16px;accent-color:#A2C617;flex-shrink:0}
+.go:disabled{opacity:.3;cursor:not-allowed}
+.go:disabled:hover{color:var(--ink)}.go:disabled:hover::after{transform:scaleX(0)}
 .pie{font-size:10.5px;color:var(--faint);line-height:2;margin-top:44px;padding-top:22px;
   border-top:1px solid var(--edge)}
 
@@ -173,13 +177,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidd
     </div>
 
     <div class="meta-line">
-      <span><b>18</b> preguntas</span>
-      <span><b>5</b> minutos</span>
+      <span><b>12</b> preguntas</span>
+      <span><b>3</b> minutos</span>
       <span>Anónima</span>
       <span>Uso académico</span>
     </div>
 
-    <button class="go" onclick="start()"><span>Comenzar →</span></button>
+    <label class="consent">
+      <input type="checkbox" id="acepto" onchange="document.getElementById('btnGo').disabled=!this.checked">
+      <span>Acepto participar de forma voluntaria en la prueba piloto. Entiendo que mis respuestas son anónimas,
+      que se usarán solo con fines académicos en el trabajo de grado DevConnect (UTS) y que puedo retirarme en cualquier momento
+      sin ninguna consecuencia, conforme a la Ley 1581 de 2012.</span>
+    </label>
+
+    <button class="go" id="btnGo" onclick="start()" disabled><span>Comenzar →</span></button>
 
     <p class="pie">
       Elver Steven Ariza González · estevenariza@uts.edu.co<br>
@@ -217,10 +228,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidd
 
 <script>
 /* ═══ CONFIGURACIÓN ═══
-   Usa la MISMA clave pública vigente que tiene la encuesta de estudiantes (index.html).
-   La clave que estaba aquí antes quedó expuesta en un chat: no la reutilices. */
-const SUPABASE_URL="https://jqpvcktnieyuitzllonv.supabase.co";
-const SUPABASE_KEY="PEGA_AQUI_LA_CLAVE_PUBLICA_VIGENTE";
+   Proyecto Supabase "devconnect prototipo". La clave publishable es pública por diseño:
+   la política RLS solo permite INSERTAR en la tabla respuestas. */
+const SUPABASE_URL="https://laothjywkrywzmoithps.supabase.co";
+const SUPABASE_KEY="sb_publishable_hDvHyARJyKM5-cQaOgwHXQ_iyVd2iSY";
 const TABLA="respuestas";
 const RUTA="piloto";
 
@@ -289,43 +300,44 @@ function pintar(){
 pintar();
 
 /* ═══ PREGUNTAS ═══
-   Bloque A: perfil y uso real. Bloque B: SUS (System Usability Scale, Brooke 1996),
-   10 ítems en su orden original; impares en positivo, pares en negativo.
-   Bloque C: valor percibido, intención de uso y recomendación (NPS). */
-const ACUERDO="1 = Totalmente en desacuerdo · 5 = Totalmente de acuerdo";
+   Preguntas directas: si le gustó, si le sirvió y si aprendió, en general y por
+   función (mejoras recibidas, proponer mejoras, sesiones en vivo, retos).
+   Cada función incluye "No lo usé" para no forzar opiniones. */
 const Q=[
-  {key:"institucion",tipo:"opcion",q:"¿Dónde estudias?",
-   op:["Unidades Tecnológicas de Santander (UTS)","Otra universidad o institución","No estoy estudiando actualmente"]},
-
-  {key:"semestre",tipo:"opcion",q:"¿En qué etapa de tu formación estás?",
+  {key:"semestre",tipo:"opcion",q:"¿En qué semestre estás?",
    op:["1.º a 3.er semestre","4.º a 6.º semestre","7.º semestre o más","Ya terminé"]},
 
-  {key:"tareas",tipo:"multi",q:"¿Qué alcanzaste a hacer en DevConnect?",
-   sub:"Marca todo lo que hiciste",
-   op:["Crear mi cuenta","Completar mi perfil","Publicar código","Comentar una publicación",
-       "Proponer una mejora a alguien","Aceptar o rechazar una mejora","Entrar a una sesión en vivo","No alcancé a usarla"]},
+  {key:"gusto",tipo:"escala",sub:"1 = No me gustó · 5 = Me encantó",izq:"NO ME GUSTÓ",der:"ME ENCANTÓ",
+   q:"¿Te gustó DevConnect?"},
 
-  {key:"sus1",tipo:"escala",q:"Creo que me gustaría usar DevConnect con frecuencia.",sub:ACUERDO},
-  {key:"sus2",tipo:"escala",q:"Encontré DevConnect innecesariamente complejo.",sub:ACUERDO},
-  {key:"sus3",tipo:"escala",q:"Pensé que DevConnect era fácil de usar.",sub:ACUERDO},
-  {key:"sus4",tipo:"escala",q:"Creo que necesitaría ayuda de alguien con conocimientos técnicos para poder usar DevConnect.",sub:ACUERDO},
-  {key:"sus5",tipo:"escala",q:"Las funciones de DevConnect están bien integradas.",sub:ACUERDO},
-  {key:"sus6",tipo:"escala",q:"Pensé que había demasiadas inconsistencias en DevConnect.",sub:ACUERDO},
-  {key:"sus7",tipo:"escala",q:"Imagino que la mayoría de las personas aprendería a usar DevConnect muy rápido.",sub:ACUERDO},
-  {key:"sus8",tipo:"escala",q:"Encontré DevConnect muy engorroso de usar.",sub:ACUERDO},
-  {key:"sus9",tipo:"escala",q:"Me sentí seguro usando DevConnect.",sub:ACUERDO},
-  {key:"sus10",tipo:"escala",q:"Necesité aprender muchas cosas antes de poder usar DevConnect.",sub:ACUERDO},
+  {key:"aprendio",tipo:"opcion",q:"¿Aprendiste algo nuevo usando DevConnect?",
+   op:["Sí, mucho","Sí, algo","No"]},
 
-  {key:"aprendizaje",tipo:"escala",q:"Recibir mejoras de otros estudiantes sobre mi código me ayuda a aprender.",sub:ACUERDO},
-  {key:"empleabilidad",tipo:"escala",q:"Un perfil con mis mejoras aceptadas me ayudaría a conseguir prácticas o empleo.",sub:ACUERDO},
+  {key:"mejoras_recibidas",tipo:"opcion",q:"¿Te sirvieron las mejoras que te propusieron a tu código?",
+   op:["Sí, mucho","Más o menos","No","Nadie me propuso mejoras"]},
 
-  {key:"continuidad",tipo:"opcion",q:"¿Seguirías usando DevConnect después del piloto?",
+  {key:"proponer",tipo:"opcion",q:"¿Te gustó proponer mejoras al código de otros?",
+   op:["Sí","Más o menos","No","No propuse ninguna"]},
+
+  {key:"en_vivo",tipo:"opcion",q:"¿Te gustaron las sesiones en vivo?",
+   op:["Sí","Más o menos","No","No entré a ninguna"]},
+
+  {key:"retos",tipo:"opcion",q:"¿Te sirvieron los retos para practicar?",
+   op:["Sí","Más o menos","No","No hice ninguno"]},
+
+  {key:"facil",tipo:"escala",sub:"1 = Nada fácil · 5 = Muy fácil",izq:"NADA FÁCIL",der:"MUY FÁCIL",
+   q:"¿Fue fácil usar DevConnect?"},
+
+  {key:"ganas",tipo:"opcion",q:"¿Te dio más ganas de programar?",
+   op:["Sí","Igual que antes","No"]},
+
+  {key:"continuidad",tipo:"opcion",q:"¿Usarías DevConnect con frecuencia?",
    op:["Sí","Tal vez","No"]},
 
   {key:"nps",tipo:"escala",min:0,max:10,izq:"NADA PROBABLE",der:"MUY PROBABLE",
-   q:"¿Qué tan probable es que le recomiendes DevConnect a un compañero?",sub:"0 = nada probable · 10 = muy probable"},
+   q:"¿Qué tan probable es que se lo recomiendes a un compañero?",sub:"0 = nada probable · 10 = muy probable"},
 
-  {key:"comentario",tipo:"abierta",q:"¿Qué fue lo más confuso, lo que no funcionó o lo que mejorarías?",
+  {key:"comentario",tipo:"abierta",q:"¿Qué le cambiarías o qué no te funcionó?",
    sub:"Opcional, pero es la respuesta más valiosa"}
 ];
 
@@ -336,6 +348,8 @@ function show(id){
   document.getElementById(id).classList.add('on');
 }
 function start(){
+  if(!document.getElementById('acepto').checked) return;
+  R.consentimiento='acepto';
   gsap.to('#net',{opacity:1,duration:1.6,ease:'power2.out'});
   gsap.to('#s-intro .inner',{opacity:0,y:-26,duration:.45,ease:'power2.in',onComplete:()=>{
     show('s-q'); document.getElementById('mark').style.display='flex'; render();
@@ -394,7 +408,7 @@ function render(){
   }
   else{
     const ta=document.createElement('textarea'); ta.className='ta';
-    ta.placeholder='Escriba aquí…'; ta.value=R[q.key]||'';
+    ta.placeholder='Escribe aquí…'; ta.value=R[q.key]||'';
     ta.oninput=e=>R[q.key]=e.target.value;
     b.appendChild(ta); kbdTxt(''); setBtn('Finalizar',false);
   }
@@ -490,8 +504,8 @@ async function post(data){
   const url=SUPABASE_URL.replace(/\/+$/,'')+'/rest/v1/'+TABLA;
   const r=await fetch(url,{
     method:'POST',
-    headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,
-      'Content-Type':'application/json',Prefer:'return=minimal'},
+    headers:Object.assign({apikey:SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
+      SUPABASE_KEY.startsWith('sb_')?{}:{Authorization:'Bearer '+SUPABASE_KEY}),
     body:JSON.stringify(data)
   });
   console.log('[DevConnect piloto] estado', r.status);
