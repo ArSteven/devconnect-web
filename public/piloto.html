@@ -177,7 +177,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidd
     </div>
 
     <div class="meta-line">
-      <span><b>15</b> preguntas</span>
+      <span><b>18</b> preguntas</span>
       <span><b>4</b> minutos</span>
       <span>Anónima</span>
       <span>Uso académico</span>
@@ -307,8 +307,14 @@ pintar();
    4. Aprendizaje (de dónde aprendió) y valor de cada función ("No la usé" no cuenta).
    5. Motivación, continuidad, recomendación (NPS) y comentario abierto. */
 const Q=[
+  {key:"institucion",tipo:"opcion",q:"¿Dónde estudias?",
+   op:["Unidades Tecnológicas de Santander (UTS)","Otra universidad o institución","No estoy estudiando actualmente"]},
+  {key:"programa",tipo:"opcion",q:"¿Qué estudias?",
+   op:["Tecnología en Desarrollo de Sistemas Informáticos","Ingeniería de Sistemas o de Software","Otra carrera de tecnología","Otra área"]},
   {key:"semestre",tipo:"opcion",q:"¿En qué semestre estás?",
    op:["1.º a 3.er semestre","4.º a 6.º semestre","7.º semestre o más","Ya terminé"]},
+  {key:"experiencia",tipo:"opcion",q:"¿Cuánto tiempo llevas programando?",
+   op:["Menos de 6 meses","De 6 meses a 1 año","De 1 a 2 años","Más de 2 años"]},
 
   {key:"gusto",tipo:"escala",sub:"1 = No me gustó · 5 = Me encantó",izq:"NO ME GUSTÓ",der:"ME ENCANTÓ",
    q:"¿Te gustó DevConnect?"},
