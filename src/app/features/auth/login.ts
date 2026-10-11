@@ -60,8 +60,14 @@ export class Login {
   });
 
   enviar(): void {
-    if (this.form.invalid) {
+    const { correo: campoCorreo, contrasena: campoContrasena } = this.form.controls;
+    if (campoCorreo.hasError('required') || campoContrasena.invalid) {
       this.error.set('Escribe tu correo y tu contraseña.');
+      return;
+    }
+    // Un correo mal escrito recibe el mismo mensaje que la API da cuando el correo o la contraseña no coinciden.
+    if (campoCorreo.invalid) {
+      this.error.set('Correo o contraseña incorrectos.');
       return;
     }
     this.enviando.set(true);
