@@ -35,7 +35,7 @@ const pesos = (n: number) => '$' + n.toLocaleString('es-CO');
         @if (suscripcion(); as s) {
           <div class="card activa aparecer">
             <strong>✓ Tu suscripción {{ s.periodo }} está activa hasta el {{ fecha(s.termina_en) }}.</strong>
-            <span>Ya ves el correo de cualquier estudiante y puedes publicar retos.</span>
+            <span>Ya ves el correo y el teléfono de los estudiantes y puedes publicar retos.</span>
             <div class="acciones">
               <a class="btn btn-primario" routerLink="/talento">Buscar talento →</a>
               <a class="btn btn-secundario" routerLink="/retos">Publicar un reto</a>
@@ -147,7 +147,7 @@ export class Planes {
       { t: '  filtros: [tecnologia, nivel, institucion, ciudad, disponibilidad, modalidad]', tipo: 'igual' },
       { t: '  guardar_candidatos: true', tipo: 'igual' },
       { t: '- contacto_directo: false', tipo: 'menos' },
-      { t: '+ contacto_directo: true   # correo visible y en el CSV', tipo: 'mas' },
+      { t: '+ contacto_directo: true   # correo y teléfono visibles y en el CSV', tipo: 'mas' },
       { t: '- publicar_retos: false', tipo: 'menos' },
       { t: '+ publicar_retos: true', tipo: 'mas' },
     ];

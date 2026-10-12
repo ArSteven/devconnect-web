@@ -8,7 +8,7 @@
 
   @if (datos(); as d) {
     @if (editando()) {
-      <app-editar-perfil [perfil]="d.perfil" (guardado)="alGuardar($event)" (cancelado)="cerrarEdicion()" />
+      <app-editar-perfil [perfil]="d.perfil" [telefono]="d.contacto?.telefono ?? ''" (guardado)="alGuardar($event)" (cancelado)="cerrarEdicion()" />
     } @else {
 
       <!-- 1. Quién es -->
@@ -180,12 +180,15 @@
             <div class="caja contacto">
               <h3>Contacto</h3>
               <span class="correo">{{ d.contacto.correo }}</span>
+              @if (d.contacto.telefono) {
+                <a class="telefono" [href]="'tel:' + d.contacto.telefono">{{ telefonoLegible(d.contacto.telefono) }}</a>
+              }
               <a class="btn btn-primario" [href]="'mailto:' + d.contacto.correo + '?subject=' + asunto">Escribir correo</a>
             </div>
           } @else if (d.contacto_oculto) {
             <div class="caja contacto bloqueado">
               <h3>Contacto</h3>
-              <p>Este estudiante prefirió no compartir su correo por ahora.</p>
+              <p>Este estudiante prefirió no compartir su contacto por ahora.</p>
             </div>
           } @else if (d.contacto_bloqueado) {
             <div class="caja contacto bloqueado">

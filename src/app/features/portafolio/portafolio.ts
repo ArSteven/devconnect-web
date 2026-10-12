@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Avisos } from '../../core/avisos';
 import {
   EventoHistorial, Portafolio as DatosPortafolio, etiquetaDisponibilidad, etiquetaModalidad, hace, nivelAcademico, nombreLenguaje,
+  telefonoLegible,
 } from '../../core/modelos';
 import { tecnologia } from '../../core/tecnologias';
 import { Avatar } from '../../shared/avatar';
@@ -55,6 +56,7 @@ export class Portafolio {
   protected esPropio = computed(() => this.auth.usuario()?.id === this.id());
   protected esEmpresa = computed(() => this.auth.usuario()?.rol === 'empresa');
   protected asunto = encodeURIComponent('Oportunidad laboral: vimos tu perfil en DevConnect');
+  protected telefonoLegible = telefonoLegible;
 
   /** Si no escribió un titular, se arma uno con su formación. */
   protected titular = computed(() => {

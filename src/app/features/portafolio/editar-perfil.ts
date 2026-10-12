@@ -97,13 +97,17 @@ type GrupoExperiencia = FormGroup<{ [K in keyof Experiencia]: FormControl<Experi
       </fieldset>
 
       <fieldset>
-        <legend>Privacidad</legend>
+        <legend>Contacto y privacidad</legend>
+        <label class="campo">Teléfono (opcional)
+          <input type="tel" formControlName="telefono" maxlength="30" autocomplete="tel" placeholder="Ej.: 310 123 4567">
+          <span class="ayuda">Solo lo ven las empresas con suscripción activa, y solo si dejas activada la opción de abajo.</span>
+        </label>
         <div class="interruptor">
           <label for="contacto-visible">
             <input type="checkbox" role="switch" id="contacto-visible" formControlName="contacto_visible" aria-describedby="ayuda-contacto">
-            <span>Mostrar mi correo a las empresas suscritas</span>
+            <span>Mostrar mi correo y mi teléfono a las empresas suscritas</span>
           </label>
-          <span class="ayuda" id="ayuda-contacto">Si lo desactivas, las empresas verán tu portafolio pero no tu correo. Puedes cambiarlo cuando quieras.</span>
+          <span class="ayuda" id="ayuda-contacto">Si lo desactivas, las empresas verán tu portafolio pero no tu correo ni tu teléfono. Puedes cambiarlo cuando quieras.</span>
         </div>
       </fieldset>
 
@@ -143,6 +147,8 @@ export class EditarPerfil implements OnInit {
   private api = inject(Api);
 
   readonly perfil = input.required<PerfilEstudiante>();
+  /** El teléfono no viaja en el perfil público: llega aparte, desde el contacto del dueño. */
+  readonly telefono = input('');
   /** Emite el GitHub guardado para que el avatar del encabezado se actualice. */
   readonly guardado = output<string>();
   readonly cancelado = output<void>();
@@ -172,6 +178,8 @@ export class EditarPerfil implements OnInit {
     linkedin_url: [''],
     sitio_url: [''],
     contacto_visible: [true],
+    // De 7 a 15 dígitos; se permiten espacios, guiones, puntos, paréntesis y un + inicial.
+    telefono: ['', Validators.pattern(/^\s*\+?(?:[\s().-]*\d){7,15}[\s().-]*$/)],
   });
 
   get experiencia(): FormArray<GrupoExperiencia> {
@@ -187,7 +195,7 @@ export class EditarPerfil implements OnInit {
       semestre: p.semestre, anio_inicio: p.anio_inicio, anio_fin: p.anio_fin,
       stack: p.stack.join(', '), idiomas: p.idiomas.join(', '),
       github_url: p.github_url, linkedin_url: p.linkedin_url, sitio_url: p.sitio_url,
-      contacto_visible: p.contacto_visible,
+      contacto_visible: p.contacto_visible, telefono: this.telefono(),
     });
     p.experiencia.forEach(e => this.experiencia.push(this.grupoExperiencia(e)));
   }
@@ -212,6 +220,7 @@ export class EditarPerfil implements OnInit {
         titular: 'Titular', ciudad: 'Ciudad', biografia: 'Acerca de ti', programa: 'Programa',
         institucion: 'Institución', semestre: 'Semestre (1 a 12)', anio_inicio: 'Año de inicio (desde 1990)',
         anio_fin: 'Año de finalización', experiencia: 'Experiencia (cargo, empresa y fechas como 2026-02)',
+        telefono: 'Teléfono (de 7 a 15 dígitos)',
       };
       const malos = Object.entries(this.form.controls).filter(([, c]) => c.invalid).map(([k]) => nombres[k] ?? k);
       this.error.set(`Revisa estos campos: ${malos.join(', ')}.`);

@@ -80,6 +80,7 @@ h3 { font-size: 14px; letter-spacing: 0; }
 .contacto { border: 2px solid var(--tinta); }
 .contacto.bloqueado p { font-size: 13px; line-height: 1.6; }
 .correo { font-size: 14px; font-weight: 700; word-break: break-all; }
+.telefono { font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; min-height: 44px; }
 .aptitudes, .simple { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .aptitudes li { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--linea); font-size: 14px; }
 .aptitudes li:last-child { padding-bottom: 0; border-bottom: 0; }

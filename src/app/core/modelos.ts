@@ -200,13 +200,14 @@ export interface PerfilEstudiante {
   idiomas: string[];
   experiencia: Experiencia[];
   biografia: string;
-  contacto_visible: boolean; // false = las empresas no ven su correo
+  contacto_visible: boolean; // false = las empresas no ven su correo ni su teléfono
 }
 
-/** Lo que se envía al guardar el perfil. Si contacto_visible no va, la API no lo cambia. */
+/** Lo que se envía al guardar el perfil. Si contacto_visible o telefono no van, la API no los cambia. */
 export type PerfilEditable = Omit<PerfilEstudiante, 'id' | 'nombre' | 'edad' | 'fecha_nacimiento' | 'contacto_visible'> & {
   fecha_nacimiento: string;
   contacto_visible?: boolean;
+  telefono?: string; // vacío = lo borra
 };
 
 export const DISPONIBILIDADES: { valor: Disponibilidad; etiqueta: string }[] = [
@@ -280,9 +281,9 @@ export interface Portafolio {
   destacados: Destacado[];
   actividad: { fecha: string; total: number }[];
   historial: EventoHistorial[];
-  contacto: { correo: string } | null;
+  contacto: { correo: string; telefono?: string } | null;
   contacto_bloqueado: boolean;
-  contacto_oculto: boolean; // el estudiante decidió no compartir su correo con empresas
+  contacto_oculto: boolean; // el estudiante decidió no compartir su contacto con empresas
   guardado: boolean;
 }
 
@@ -310,6 +311,7 @@ export interface TarjetaTalento {
 
 export interface Candidato extends TarjetaTalento {
   correo?: string; // solo con suscripción activa
+  telefono?: string; // solo con suscripción activa y si el estudiante lo escribió
   guardado_en: string;
 }
 
@@ -403,6 +405,12 @@ export function hace(fechaISO: string): string {
 export function nivelAcademico(p: { semestre: number | null; estado_academico: string }): string {
   if (p.estado_academico === 'egresado') return 'Egresado';
   return p.semestre ? `${p.semestre}.º semestre` : '';
+}
+
+/** "3104827156" → "310 482 7156" y "+573104827156" → "+57 310 482 7156"; otro formato queda igual. */
+export function telefonoLegible(telefono: string): string {
+  const m = /^(\+57)?(\d{3})(\d{3})(\d{4})$/.exec(telefono);
+  return m ? [m[1], m[2], m[3], m[4]].filter(Boolean).join(' ') : telefono;
 }
 
 export function etiquetaDisponibilidad(valor: string): string {

@@ -1,6 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TarjetaTalento, etiquetaDisponibilidad, etiquetaModalidad, nivelAcademico } from '../../core/modelos';
+import { TarjetaTalento, etiquetaDisponibilidad, etiquetaModalidad, nivelAcademico, telefonoLegible } from '../../core/modelos';
 import { tecnologia } from '../../core/tecnologias';
 import { Avatar } from '../../shared/avatar';
 import { Tecnologia } from '../../shared/tecnologia';
@@ -48,8 +48,15 @@ import { Tecnologia } from '../../shared/tecnologia';
         </div>
       }
 
-      @if (correo()) {
-        <a class="correo" [href]="'mailto:' + correo() + '?subject=' + asunto">{{ correo() }}</a>
+      @if (correo() || telefono()) {
+        <div class="contacto">
+          @if (correo()) {
+            <a class="correo" [href]="'mailto:' + correo() + '?subject=' + asunto">{{ correo() }}</a>
+          }
+          @if (telefono(); as tel) {
+            <a class="correo" [href]="'tel:' + tel">{{ telefonoLegible(tel) }}</a>
+          }
+        </div>
       }
 
       <div class="acciones">
@@ -81,6 +88,7 @@ import { Tecnologia } from '../../shared/tecnologia';
     .aptitudes { display: flex; flex-wrap: wrap; gap: 6px; }
     .apt { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 2px solid var(--linea); border-radius: 4px; font-size: 12px; }
     .apt.verificada { border-color: var(--verde-texto); color: var(--verde-texto); background: var(--verde-fondo); font-weight: 800; }
+    .contacto { display: flex; flex-direction: column; }
     .correo { font-size: 13px; font-weight: 700; word-break: break-all; display: inline-flex; align-items: center; min-height: 44px; }
     .acciones { display: flex; gap: 8px; margin-top: auto; }
     .acciones .btn { flex: 1; }
@@ -91,12 +99,14 @@ export class TarjetaCandidato {
   readonly t = input.required<TarjetaTalento>();
   readonly guardando = input(false);
   readonly correo = input<string | undefined>('');
+  readonly telefono = input<string | undefined>('');
   /** En "Mis candidatos" el botón dice Quitar en vez de Guardado. */
   readonly modoLista = input(false);
   readonly alternarGuardado = output<void>();
 
   protected ocho = [0, 1, 2, 3, 4, 5, 6, 7];
   protected asunto = encodeURIComponent('Oportunidad laboral: vimos tu perfil en DevConnect');
+  protected telefonoLegible = telefonoLegible;
   /** "UTS · 5.º semestre" */
   protected estudio = computed(() => [this.t().institucion, nivelAcademico(this.t())].filter(Boolean).join(' · '));
   /** "Girón · Presencial" */

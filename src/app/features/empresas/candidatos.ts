@@ -36,7 +36,7 @@ function celda(valor: string | number | null | undefined): string {
 
       @if (!conCorreo() && candidatos().length) {
         <div class="aviso">
-          <span>Con el plan gratuito el CSV no incluye el correo. Con la suscripción ves el contacto y lo exportas.</span>
+          <span>Con el plan gratuito el CSV no incluye el correo ni el teléfono. Con la suscripción ves el contacto y lo exportas.</span>
           <a class="btn btn-secundario btn-pequeno" routerLink="/planes">Ver planes →</a>
         </div>
       }
@@ -49,7 +49,7 @@ function celda(valor: string | number | null | undefined): string {
         <p class="conteo">{{ candidatos().length }} {{ candidatos().length === 1 ? 'candidato guardado' : 'candidatos guardados' }}</p>
         <div class="grilla">
           @for (c of candidatos(); track c.id; let i = $index) {
-            <app-tarjeta-candidato class="aparecer" [style.--i]="i" [t]="c" [correo]="c.correo" [modoLista]="true"
+            <app-tarjeta-candidato class="aparecer" [style.--i]="i" [t]="c" [correo]="c.correo" [telefono]="c.telefono" [modoLista]="true"
                                    [guardando]="quitando() === c.id" (alternarGuardado)="quitar(c)" />
           } @empty {
             <div class="card vacio">
@@ -126,7 +126,7 @@ export class Candidatos {
     const conCorreo = this.conCorreo();
     const encabezado = ['Nombre', 'Institución', 'Programa', 'Nivel', 'Ciudad', 'Disponibilidad', 'Modalidad',
       'Aptitudes verificadas', 'Tasa de aceptación (%)', 'Mejoras aceptadas', 'Semanas activas (de 8)', 'Enlace al perfil'];
-    if (conCorreo) encabezado.push('Correo');
+    if (conCorreo) encabezado.push('Correo', 'Teléfono');
     const filas = this.candidatos().map(c => {
       const fila = [
         c.nombre, c.institucion, c.programa, nivelAcademico(c), c.ciudad,
@@ -135,7 +135,7 @@ export class Candidatos {
         c.tasa_aceptacion, c.mejoras_aportadas, c.semanas_activas,
         `${location.origin}/portafolio/${c.id}`,
       ];
-      if (conCorreo) fila.push(c.correo ?? '');
+      if (conCorreo) fila.push(c.correo ?? '', c.telefono ?? '');
       return fila.map(celda).join(';');
     });
     const csv = '﻿' + [encabezado.map(celda).join(';'), ...filas].join('\r\n');
